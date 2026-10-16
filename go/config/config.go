@@ -14,8 +14,8 @@ import (
 
 	"github.com/mooss/bagend/go/flag"
 	"github.com/mooss/bagend/go/fun/eager/lie"
-	"github.com/mooss/jen/go/ai/prompts"
-	"github.com/mooss/jen/go/utils"
+	"github.com/mooss/jenai/go/prompts"
+	"github.com/mooss/jenai/go/utils"
 )
 
 func ConfigDir() (string, error) {

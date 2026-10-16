@@ -10,7 +10,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/mooss/jen/go/ai/models"
+	"github.com/mooss/jenai/go/models"
 )
 
 const chatCompletionsURL = "https://openrouter.ai/api/v1/chat/completions"

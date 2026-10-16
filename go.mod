@@ -1,4 +1,4 @@
-module github.com/mooss/jen
+module github.com/mooss/jenai
 
 go 1.27.2
 

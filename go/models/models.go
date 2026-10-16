@@ -5,7 +5,7 @@ import (
 	_ "embed"
 	"fmt"
 
-	"github.com/mooss/jen/go/utils"
+	"github.com/mooss/jenai/go/utils"
 )
 
 //go:embed models.yaml

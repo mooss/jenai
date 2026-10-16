@@ -21,4 +21,4 @@ lint:
 	  --sort-results
 
 install:
-	go install go/ai/jenai.go
+	go install ./go/cmd/jenai
