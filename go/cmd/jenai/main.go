@@ -116,8 +116,9 @@ func run(cfg *config.Jenai, lib prompts.Library) {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	content, full := streamAndDisplay(ctx, cfg, spec, apiKey, prompt.String())
-	writeTees(cfg, prompt, full, content, spec)
+	if err := streamAndDisplay(ctx, cfg, spec, apiKey, prompt, prompt.String()); err != nil {
+		fatal(err)
+	}
 }
 
 func modelSpec(cfg *config.Jenai) (models.Spec, error) {
