@@ -1,6 +1,6 @@
 module github.com/mooss/jen
 
-go 1.25
+go 1.27.2
 
 require (
 	github.com/alecthomas/chroma v0.10.0
