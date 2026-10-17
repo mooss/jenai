@@ -24,117 +24,142 @@ func streamAndDisplay(
 ) (err error) {
 	teePath := canonicalTeePath(cfg.TeeFile)
 	thoughtlessPath := canonicalTeePath(cfg.ThoughtlessTeeFile)
-	if teePath != "" && teePath == thoughtlessPath {
-		return fmt.Errorf("tee file and thoughtless tee file are the same file: %s", teePath)
+	if err := checkTeePaths(teePath, thoughtlessPath); err != nil {
+		return err
 	}
-
-	output := highlight.NewMarkdownStreamer(os.Stdout, "pygments", terminalColorEnabled(os.Stdout))
-	reasoningOutput := highlight.NewMarkdownStreamer(os.Stdout, "pygments", terminalColorEnabled(os.Stdout))
-	var reasoningStarted, reasoningClosed bool
 
 	teeFile := utils.OpenTeeFile(teePath)
-	if teeFile.IsOpen() {
-		defer teeFile.Finish()
-		header, err := teeHeader(cfg, prompt, spec)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "can't build tee header (will proceed nonetheless): %s\n", err)
-			teeFile.Finish()
-		} else {
-			teeFile.Write(header)
-		}
-	}
+	defer teeFile.Finish()
+	writeTeeHeader(teeFile, cfg, prompt, spec)
 	thoughtlessFile := utils.OpenTeeFile(thoughtlessPath)
-	if thoughtlessFile.IsOpen() {
-		defer thoughtlessFile.Finish()
-	}
-	var teeReasoningStarted, teeReasoningClosed bool
+	defer thoughtlessFile.Finish()
 
-	onReasoning := func(s string) {
-		if teeFile.IsOpen() {
-			if !teeReasoningStarted {
-				teeFile.Write("<think>\n")
-				teeReasoningStarted = true
-			}
-			teeFile.Write(s)
-		}
-		if cfg.Thoughtless {
-			return
-		}
-		if !reasoningStarted {
-			fmt.Fprint(os.Stdout, reasoningOutput.ColorizeTag("<think>"), "\n")
-			reasoningStarted = true
-		}
-		noerr0(reasoningOutput.Write(s))
-	}
-
-	endsWithNewline := true // True by default to avoid always calling onContent.
-	onContent := func(s string) {
-		if teeFile.IsOpen() {
-			if teeReasoningStarted && !teeReasoningClosed {
-				teeFile.Write("\n</think>\n")
-				teeReasoningClosed = true
-			}
-			teeFile.Write(s)
-		}
-		if thoughtlessFile.IsOpen() {
-			thoughtlessFile.Write(s)
-		}
-		if reasoningStarted && !reasoningClosed && !cfg.Thoughtless {
-			noerr0(reasoningOutput.Flush())
-			fmt.Fprint(os.Stdout, "\n", reasoningOutput.ColorizeTag("</think>"), "\n\n")
-			reasoningClosed = true
-		}
-
-		endsWithNewline = strings.HasSuffix(s, "\n")
-		noerr0(output.Write(s))
-	}
+	d := newDisplay(cfg, teeFile, thoughtlessFile)
 
 	chunks, errs, err := llm.Stream(ctx, spec, apiKey, promptStr)
 	noerr0(err)
 	for chunk := range chunks {
-		if len(chunk.Choices) == 0 {
-			if chunk.Usage != nil {
-				continue // Expected final usage-only chunk from `IncludeUsage: true`.
-			}
-			fmt.Fprintln(os.Stderr, "warning: chunk with empty choices and no usage")
-			continue
-		}
-
-		c := chunk.Choices[0]
-		if c.Delta.Reasoning != "" {
-			onReasoning(c.Delta.Reasoning)
-		}
-		if c.Delta.Content != "" {
-			onContent(c.Delta.Content)
-		}
-
+		d.handleChunk(chunk)
 	}
 	noerr0(<-errs)
 
-	if reasoningStarted && !reasoningClosed {
+	if d.stdoutThink.unclosed() {
 		noerr0(errors.New("reasoning never closed"))
 	}
-
-	if !endsWithNewline {
-		onContent("\n")
-	}
-	noerr0(output.Flush())
+	d.finish()
 
 	return nil
 }
 
-func terminalColorEnabled(writer io.Writer) bool {
-	if os.Getenv("NO_COLOR") != "" {
-		return false
-	}
+/////////////
+// display //
 
-	file, ok := writer.(*os.File)
-	if !ok {
-		return false
-	}
-	info, err := file.Stat()
-	return err == nil && info.Mode()&os.ModeCharDevice != 0
+type display struct {
+	cfg             *config.Jenai
+	output          *highlight.MarkdownStreamer
+	reasoningOutput *highlight.MarkdownStreamer
+	teeFile         *utils.TeeFile
+	thoughtlessFile *utils.TeeFile
+	stdoutThink     thinkGuard
+	teeThink        thinkGuard
+	endsWithNewline bool
 }
+
+func newDisplay(cfg *config.Jenai, teeFile, thoughtlessFile *utils.TeeFile) *display {
+	color := terminalColorEnabled(os.Stdout)
+	return &display{
+		cfg:             cfg,
+		output:          highlight.NewMarkdownStreamer(os.Stdout, "pygments", color),
+		reasoningOutput: highlight.NewMarkdownStreamer(os.Stdout, "pygments", color),
+		teeFile:         teeFile,
+		thoughtlessFile: thoughtlessFile,
+		endsWithNewline: true, // True by default to avoid always calling onContent.
+	}
+}
+
+func (d *display) onReasoning(s string) {
+	if d.teeFile.IsOpen() {
+		d.teeThink.open(func() { d.teeFile.Write("<think>\n") })
+		d.teeFile.Write(s)
+	}
+	if d.cfg.Thoughtless {
+		return
+	}
+	d.stdoutThink.open(func() {
+		fmt.Fprint(os.Stdout, d.reasoningOutput.ColorizeTag("<think>"), "\n")
+	})
+	noerr0(d.reasoningOutput.Write(s))
+}
+
+func (d *display) onContent(s string) {
+	if d.teeFile.IsOpen() {
+		d.teeThink.close(func() { d.teeFile.Write("\n</think>\n") })
+		d.teeFile.Write(s)
+	}
+	if d.thoughtlessFile.IsOpen() {
+		d.thoughtlessFile.Write(s)
+	}
+	if !d.cfg.Thoughtless {
+		d.stdoutThink.close(func() {
+			noerr0(d.reasoningOutput.Flush())
+			fmt.Fprint(os.Stdout, "\n", d.reasoningOutput.ColorizeTag("</think>"), "\n\n")
+		})
+	}
+	d.endsWithNewline = strings.HasSuffix(s, "\n")
+	noerr0(d.output.Write(s))
+}
+
+func (d *display) handleChunk(chunk llm.Chunk) {
+	if len(chunk.Choices) == 0 {
+		if chunk.Usage != nil {
+			return // Expected final usage-only chunk from `IncludeUsage: true`.
+		}
+		fmt.Fprintln(os.Stderr, "warning: chunk with empty choices and no usage")
+		return
+	}
+	c := chunk.Choices[0]
+	if c.Delta.Reasoning != "" {
+		d.onReasoning(c.Delta.Reasoning)
+	}
+	if c.Delta.Content != "" {
+		d.onContent(c.Delta.Content)
+	}
+}
+
+func (d *display) finish() {
+	if !d.endsWithNewline {
+		d.onContent("\n")
+	}
+	noerr0(d.output.Flush())
+}
+
+////////////////
+// thinkGuard //
+
+type thinkGuard struct {
+	started, closed bool
+}
+
+func (g *thinkGuard) open(openFn func()) {
+	if !g.started {
+		openFn()
+		g.started = true
+	}
+}
+
+func (g *thinkGuard) close(closeFn func()) {
+	if g.started && !g.closed {
+		closeFn()
+		g.closed = true
+	}
+}
+
+func (g *thinkGuard) unclosed() bool {
+	return g.started && !g.closed
+}
+
+///////////////////////
+// Utility functions //
 
 func canonicalTeePath(path string) string {
 	if path == "" {
@@ -145,6 +170,27 @@ func canonicalTeePath(path string) string {
 		return path
 	}
 	return abs
+}
+
+func checkTeePaths(teePath, thoughtlessPath string) error {
+	if teePath != "" && teePath == thoughtlessPath {
+		return fmt.Errorf("tee file and thoughtless tee file are the same file: %s", teePath)
+	}
+	return nil
+}
+
+func writeTeeHeader(teeFile *utils.TeeFile, cfg *config.Jenai, prompt config.Prompt, spec models.Spec) {
+	if !teeFile.IsOpen() {
+		return
+	}
+
+	header, err := teeHeader(cfg, prompt, spec)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "can't build tee header (will proceed nonetheless): %s\n", err)
+		teeFile.Finish()
+	} else {
+		teeFile.Write(header)
+	}
 }
 
 func teeHeader(cfg *config.Jenai, prompt config.Prompt, spec models.Spec) (string, error) {
@@ -164,4 +210,17 @@ func teeHeader(cfg *config.Jenai, prompt config.Prompt, spec models.Spec) (strin
 	}
 
 	return strings.Join([]string{"---", string(yamlmeta) + "---\n"}, "\n") + "\n", nil
+}
+
+func terminalColorEnabled(writer io.Writer) bool {
+	if os.Getenv("NO_COLOR") != "" {
+		return false
+	}
+
+	file, ok := writer.(*os.File)
+	if !ok {
+		return false
+	}
+	info, err := file.Stat()
+	return err == nil && info.Mode()&os.ModeCharDevice != 0
 }
