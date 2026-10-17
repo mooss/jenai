@@ -179,7 +179,9 @@ func checkTeePaths(teePath, thoughtlessPath string) error {
 	return nil
 }
 
-func writeTeeHeader(teeFile *utils.TeeFile, cfg *config.Jenai, prompt config.Prompt, spec models.Spec) {
+func writeTeeHeader(
+	teeFile *utils.TeeFile, cfg *config.Jenai, prompt config.Prompt, spec models.Spec,
+) {
 	if !teeFile.IsOpen() {
 		return
 	}

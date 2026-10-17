@@ -58,8 +58,8 @@ func main() {
 	run(cfg, library)
 }
 
-func printEmbeddedPromptNames(prompts map[string]string) {
-	for name := range prompts {
+func printEmbeddedPromptNames(promptNames map[string]string) {
+	for name := range promptNames {
 		fmt.Println(name)
 	}
 }
@@ -89,7 +89,7 @@ func printAvailableModels() {
 
 func conf() (*config.Jenai, *flag.Parser) {
 	cfg := config.Jenai{}
-	dir, err := config.ConfigDir()
+	dir, err := config.Root()
 	if err != nil {
 		fatal(err)
 	}
@@ -113,7 +113,7 @@ func run(cfg *config.Jenai, lib prompts.Library) {
 	}
 
 	spec := noerr(modelSpec(cfg))
-	apiKey := noerr(cfg.ApiKeyFor(spec.Provider))
+	apiKey := noerr(cfg.APIKeyFor(spec.Provider))
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()

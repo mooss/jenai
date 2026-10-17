@@ -13,7 +13,7 @@ import (
 )
 
 func ensureConfig() error {
-	err, alreadyExists := ensureConfigDir()
+	alreadyExists, err := ensureConfigDir()
 	if err != nil {
 		return err
 	}
@@ -21,7 +21,7 @@ func ensureConfig() error {
 		return ensureConfigYaml()
 	}
 
-	dir, err := config.ConfigDir()
+	dir, err := config.Root()
 	if err != nil {
 		return err
 	}
@@ -41,13 +41,13 @@ func ensureConfig() error {
 }
 
 func ensureConfigYaml() error {
-	dir, err := config.ConfigDir()
+	dir, err := config.Root()
 	if err != nil {
 		return err
 	}
 	cfgPath := filepath.Join(dir, "config.yaml")
 
-	ferr, exists := fileExists(cfgPath)
+	exists, ferr := fileExists(cfgPath)
 	if ferr != nil {
 		return ferr
 	}
@@ -64,7 +64,10 @@ func ensureConfigYaml() error {
 		if err := os.Chmod(cfgPath, 0600); err != nil {
 			return err
 		}
-		fmt.Fprintf(os.Stderr, "warning: permissions of %q changed to 0600 to make it non world-readable to protect secrets within\n", cfgPath)
+
+		msg := "warning: permissions of %q changed to 0600 to make it non world-readable to " +
+			"protect secrets within\n"
+		fmt.Fprintf(os.Stderr, msg, cfgPath)
 	}
 
 	return nil
@@ -72,25 +75,25 @@ func ensureConfigYaml() error {
 
 // ensureConfigDir tests if the directory already exists and creates it if it doesn't.
 // Returns true when the directory already exists.
-func ensureConfigDir() (error, bool) {
-	dir, err := config.ConfigDir()
+func ensureConfigDir() (bool, error) {
+	dir, err := config.Root()
 	if err != nil {
-		return err, false
+		return false, err
 	}
 
-	err, exists := fileExists(dir)
+	exists, err := fileExists(dir)
 	if err != nil {
-		return err, false
+		return false, err
 	}
 
 	if exists {
-		return ensureConfigDirPermissions(dir), true
+		return true, ensureConfigDirPermissions(dir)
 	}
 
 	if err := os.MkdirAll(dir, 0700); err != nil {
-		return fmt.Errorf("failed to create config dir: %w", err), false
+		return false, fmt.Errorf("failed to create config dir: %w", err)
 	}
-	return nil, false
+	return false, nil
 }
 
 func ensureConfigDirPermissions(dir string) error {
@@ -107,16 +110,14 @@ func ensureConfigDirPermissions(dir string) error {
 		return err
 	}
 
-	fmt.Fprintf(
-		os.Stderr,
-		"warning: permissions of config directory %q changed to 0700 to make it non world-readable to protect secrets within\n",
-		dir,
-	)
+	msg := "warning: permissions of config directory %q changed to 0700 to make it non " +
+		"world-readable to protect secrets within\n"
+	fmt.Fprintf(os.Stderr, msg, dir)
 	return nil
 }
 
 func writeConfigFile(path string, data []byte, perm os.FileMode) error {
-	dir, err := config.ConfigDir()
+	dir, err := config.Root()
 	if err != nil {
 		return err
 	}
@@ -126,15 +127,15 @@ func writeConfigFile(path string, data []byte, perm os.FileMode) error {
 	return nil
 }
 
-func fileExists(filename string) (error, bool) {
+func fileExists(filename string) (bool, error) {
 	_, err := os.Stat(filename)
 	if err == nil {
-		return nil, true
+		return true, nil
 	}
 
 	if os.IsNotExist(err) {
 		err = nil
 	}
 
-	return err, false
+	return false, err
 }

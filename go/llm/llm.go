@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -80,7 +81,9 @@ type chatReasoning struct {
 // Stream //
 
 // Stream starts a streaming completion and returns the raw chunk and error channels.
-func Stream(ctx context.Context, spec models.Spec, apiKey, prompt string) (<-chan Chunk, <-chan error, error) {
+func Stream(
+	ctx context.Context, spec models.Spec, apiKey, prompt string,
+) (<-chan Chunk, <-chan error, error) {
 	req, err := newRequest(ctx, spec, apiKey, prompt)
 	if err != nil {
 		return nil, nil, err
@@ -100,12 +103,15 @@ func Stream(ctx context.Context, spec models.Spec, apiKey, prompt string) (<-cha
 	return chunks, errs, nil
 }
 
-func newRequest(ctx context.Context, spec models.Spec, apiKey, prompt string) (*http.Request, error) {
+func newRequest(
+	ctx context.Context, spec models.Spec, apiKey, prompt string,
+) (*http.Request, error) {
 	if strings.TrimSpace(apiKey) == "" {
-		return nil, fmt.Errorf("openrouter: missing API key")
+		return nil, errors.New("openrouter: missing API key")
 	}
 	if spec.Provider != "openrouter" {
-		return nil, fmt.Errorf("openrouter: unsupported provider %q: expected %q", spec.Provider, "openrouter")
+		msg := "openrouter: unsupported provider %q: expected %q"
+		return nil, fmt.Errorf(msg, spec.Provider, "openrouter")
 	}
 
 	body, err := json.Marshal(chatRequest{
@@ -135,7 +141,8 @@ func checkStatus(resp *http.Response) error {
 	}
 
 	data, _ := io.ReadAll(io.LimitReader(resp.Body, 4*1024))
-	return fmt.Errorf("openrouter: unexpected status %s: %s", resp.Status, strings.TrimSpace(string(data)))
+	msg := "openrouter: unexpected status %s: %s"
+	return fmt.Errorf(msg, resp.Status, strings.TrimSpace(string(data)))
 }
 
 //////////////
@@ -204,7 +211,7 @@ func reportStreamReadError(ctx context.Context, readErr error, errs chan<- error
 		errs <- ctx.Err()
 		return
 	}
-	if readErr != io.EOF {
+	if !errors.Is(readErr, io.EOF) {
 		errs <- fmt.Errorf("openrouter: stream read: %w", readErr)
 	}
 }
@@ -223,19 +230,19 @@ func ssePayload(line string) (string, bool) {
 	return payload, true
 }
 
-func truncatePreview(s string, max int) string {
-	if max <= 0 {
+func truncatePreview(s string, maxLen int) string {
+	if maxLen <= 0 {
 		return ""
 	}
-	if len(s) <= max {
+	if len(s) <= maxLen {
 		return s
 	}
 	// Truncate on rune boundary to avoid splitting UTF-8.
 	runes := []rune(s)
-	if len(runes) <= max {
+	if len(runes) <= maxLen {
 		return s
 	}
-	return string(runes[:max]) + "… [truncated]"
+	return string(runes[:maxLen]) + "… [truncated]"
 }
 
 func parseChunk(payload string) (Chunk, error) {

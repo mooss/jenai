@@ -18,7 +18,7 @@ import (
 	"github.com/mooss/jenai/go/utils"
 )
 
-func ConfigDir() (string, error) {
+func Root() (string, error) {
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return "", fmt.Errorf("cannot determine home directory: %w", err)
@@ -27,7 +27,7 @@ func ConfigDir() (string, error) {
 }
 
 type Jenai struct {
-	ApiKeys            map[string]string `yaml:"-" json:"-"`
+	APIKeys            map[string]string `yaml:"-" json:"-"`
 	Context            Context           `yaml:"context" json:"context"`
 	DryRun             bool              `yaml:"dryrun,omitempty" json:"dryrun,omitempty"`
 	List               bool              `yaml:"list,omitempty" json:"list,omitempty"`
@@ -37,7 +37,7 @@ type Jenai struct {
 	Paste              bool              `yaml:"paste,omitempty" json:"paste,omitempty"`
 	Positional         []string          `yaml:"positional,omitempty" json:"positional,omitempty"`
 	Thoughtless        bool              `yaml:"thoughtless,omitempty" json:"thoughtless,omitempty"`
-	ThoughtlessTeeFile string            `yaml:"thoughtlessteefile,omitempty" json:"thoughtlessteefile,omitempty"`
+	ThoughtlessTeeFile string            `yaml:"thoughtlessteefile,omitempty" json:"thoughtlessteefile,omitempty"` //nolint:revive
 	TeeFile            string            `yaml:"teefile,omitempty" json:"teefile,omitempty"`
 }
 
@@ -57,8 +57,9 @@ func (conf *Jenai) RegisterCLI() *flag.Parser {
 	parser.Bool("list-models", &conf.ListModels, "list all available models").
 		Alias("lm")
 	parser.Bool("linum", &conf.Context.LineNumbers, "Print files with line numbers")
-	parser.String("model", &conf.Model, "Model name (short name from --lm or provider:author/model)").
-		Alias("m").Default("ds41-flash")
+	parser.String(
+		"model", &conf.Model, "Model name (short name from --lm or provider:author/model)",
+	).Alias("m").Default("ds41-flash")
 	parser.Bool("oneshot", &conf.OneShot, "Use positional arguments as the prompt").
 		Alias("o")
 	parser.Bool("paste", &conf.Paste, "Use clipboard content as prompt")
@@ -85,7 +86,7 @@ func (conf *Jenai) ParseCLI(parser *flag.Parser, args []string) error {
 
 func (conf *Jenai) LoadFile(path string) error {
 	loaded, err := utils.FromYAMLFile[struct {
-		ApiKeys map[string]string `yaml:"api-keys" json:"api-keys"`
+		APIKeys map[string]string `yaml:"api-keys" json:"api-keys"`
 	}](path)
 	if errors.Is(err, os.ErrNotExist) {
 		return nil
@@ -94,17 +95,17 @@ func (conf *Jenai) LoadFile(path string) error {
 		return fmt.Errorf("failed to load config file %q: %w", path, err)
 	}
 
-	if loaded.ApiKeys != nil {
-		conf.ApiKeys = loaded.ApiKeys
+	if loaded.APIKeys != nil {
+		conf.APIKeys = loaded.APIKeys
 	}
 	return nil
 }
 
-func (conf *Jenai) ApiKeyFor(provider string) (string, error) {
-	if key := conf.ApiKeys[provider]; key != "" {
+func (conf *Jenai) APIKeyFor(provider string) (string, error) {
+	if key := conf.APIKeys[provider]; key != "" {
 		return key, nil
 	}
-	dir, err := ConfigDir()
+	dir, err := Root()
 	if err != nil {
 		return "", err
 	}
@@ -129,7 +130,7 @@ func (conf *Jenai) BuildPrompt(lib prompts.Library) (Prompt, error) {
 		return Prompt{}, err
 	}
 
-	context, paths, err := conf.Context.Build()
+	contextText, paths, err := conf.Context.Build()
 	if err != nil {
 		return Prompt{}, err
 	}
@@ -141,7 +142,7 @@ func (conf *Jenai) BuildPrompt(lib prompts.Library) (Prompt, error) {
 
 	return Prompt{
 		Clipboard:    clipboard,
-		Context:      context,
+		Context:      contextText,
 		ContextAbove: conf.Context.Above,
 		Paths:        paths,
 		Positional:   strings.Join(positional, " "),
@@ -211,9 +212,8 @@ func readClipboard() (string, error) {
 		tried = append(tried, args[0])
 
 		ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
-		defer cancel()
-
-		output, err := exec.CommandContext(ctx, args[0], args[1:]...).Output()
+		output, err := exec.CommandContext(ctx, args[0], args[1:]...).Output() //nolint:gosec
+		cancel()
 		if err == nil {
 			return string(output), nil
 		} // Tool exists but failed (e.g. empty clipboard), simply try the next one.

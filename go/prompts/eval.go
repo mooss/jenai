@@ -3,6 +3,7 @@ package prompts
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"os/exec"
@@ -76,7 +77,7 @@ func gitCommand(args ...any) (string, error) {
 		return "", err
 	}
 
-	cmd := exec.Command("git", strargs...)
+	cmd := exec.CommandContext(context.Background(), "git", strargs...)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return "", fmt.Errorf("git %v failed: %w:\n%s", strargs, err, output)

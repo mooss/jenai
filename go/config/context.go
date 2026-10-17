@@ -3,6 +3,7 @@ package config
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -79,7 +80,7 @@ func yieldDirPaths(dir string, yield func(string, error) bool) bool {
 }
 
 func (*Context) wrap(err error) error {
-	return fmt.Errorf("failed to build file context: %s", err)
+	return fmt.Errorf("failed to build file context: %w", err)
 }
 
 ///////////////////////
@@ -95,13 +96,15 @@ func fileContent(buf *bytes.Buffer, path string, linum bool) error {
 	}
 	defer reader.Close()
 
-	buf.WriteString("\n\n====> START OF " + path + " <====\n\n")
+	buf.WriteString("\n\n====> START OF ")
+	buf.WriteString(path)
+	buf.WriteString(" <====\n\n")
 
 	if linum {
 		scanner := bufio.NewScanner(reader)
 		lineNumber := 1
 		for scanner.Scan() {
-			buf.WriteString(fmt.Sprintf("%d: %s\n", lineNumber, scanner.Text()))
+			fmt.Fprintf(buf, "%d: %s\n", lineNumber, scanner.Text())
 			lineNumber++
 		}
 		if err := scanner.Err(); err != nil {
@@ -114,7 +117,9 @@ func fileContent(buf *bytes.Buffer, path string, linum bool) error {
 		}
 	}
 
-	buf.WriteString("\n\n====> END OF " + path + " <====")
+	buf.WriteString("\n\n====> END OF ")
+	buf.WriteString(path)
+	buf.WriteString(" <====")
 	return nil
 }
 
@@ -135,19 +140,25 @@ func readContent(path string) (io.ReadCloser, error) {
 // isURL checks if the given string is a valid URL.
 func isURL(path string) bool {
 	u, err := url.Parse(path)
-	return err == nil && u.Scheme != "" && u.Host != "" && (u.Scheme == "http" || u.Scheme == "https")
+	return err == nil && u.Host != "" && (u.Scheme == "http" || u.Scheme == "https")
 }
 
 // downloadContent downloads content from the given URL and returns an io.Reader.
 func downloadContent(fileURL string) (io.ReadCloser, error) {
-	resp, err := http.Get(fileURL)
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, fileURL, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to download URL %s: %w", fileURL, err)
+	}
+
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to download URL %s: %w", fileURL, err)
 	}
 
 	if resp.StatusCode != http.StatusOK {
 		resp.Body.Close()
-		return nil, fmt.Errorf("failed to download URL %s, status code: %d", fileURL, resp.StatusCode)
+		msg := "failed to download URL %s, status code: %d"
+		return nil, fmt.Errorf(msg, fileURL, resp.StatusCode)
 	}
 
 	return readCloser{resp.Body, resp.Body.Close}, nil
