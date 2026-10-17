@@ -13,6 +13,9 @@ import (
 	"github.com/mooss/jenai/go/models"
 )
 
+//////////////
+// Typedefs //
+
 const chatCompletionsURL = "https://openrouter.ai/api/v1/chat/completions"
 
 // maxInvalidChunkPreviewLen caps the payload preview included in parse errors to avoid noisy logs
@@ -73,6 +76,9 @@ type chatReasoning struct {
 	Summary string `json:"summary"`
 }
 
+////////////
+// Stream //
+
 // Stream starts a streaming completion and returns the raw chunk and error channels.
 func Stream(ctx context.Context, spec models.Spec, apiKey, prompt string) (<-chan Chunk, <-chan error, error) {
 	req, err := newRequest(ctx, spec, apiKey, prompt)
@@ -132,6 +138,9 @@ func checkStatus(resp *http.Response) error {
 	return fmt.Errorf("openrouter: unexpected status %s: %s", resp.Status, strings.TrimSpace(string(data)))
 }
 
+//////////////
+// SSE Scan //
+
 func scan(ctx context.Context, resp *http.Response) (<-chan Chunk, <-chan error) {
 	chunks := make(chan Chunk)
 	errs := make(chan error, 1)
@@ -141,44 +150,67 @@ func scan(ctx context.Context, resp *http.Response) (<-chan Chunk, <-chan error)
 		defer close(errs)
 		defer resp.Body.Close()
 
-		reader := bufio.NewReader(resp.Body)
-
-		for {
-			line, readErr := reader.ReadString('\n')
-			if payload, ok := ssePayload(line); ok {
-				if payload == "[DONE]" {
-					return
-				}
-				chunk, err := parseChunk(payload)
-				if err != nil {
-					errs <- err
-					return
-				}
-				if chunk.Error != nil {
-					errs <- chunk.Error
-					return
-				}
-				select {
-				case chunks <- chunk:
-				case <-ctx.Done():
-					errs <- ctx.Err()
-					return
-				}
-			}
-
-			if readErr != nil {
-				if ctx.Err() != nil {
-					errs <- ctx.Err()
-				} else if readErr != io.EOF {
-					errs <- fmt.Errorf("openrouter: stream read: %w", readErr)
-				}
-				return
-			}
-		}
+		scanStream(ctx, resp.Body, chunks, errs)
 	}()
 
 	return chunks, errs
 }
+
+func scanStream(ctx context.Context, body io.Reader, chunks chan<- Chunk, errs chan<- error) {
+	reader := bufio.NewReader(body)
+
+	for {
+		line, readErr := reader.ReadString('\n')
+		if !processSSELine(ctx, line, chunks, errs) {
+			return
+		}
+		if readErr != nil {
+			reportStreamReadError(ctx, readErr, errs)
+			return
+		}
+	}
+}
+
+func processSSELine(ctx context.Context, line string, chunks chan<- Chunk, errs chan<- error) bool {
+	payload, ok := ssePayload(line)
+	if !ok {
+		return true
+	}
+	if payload == "[DONE]" {
+		return false
+	}
+
+	chunk, err := parseChunk(payload)
+	if err != nil {
+		errs <- err
+		return false
+	}
+	if chunk.Error != nil {
+		errs <- chunk.Error
+		return false
+	}
+
+	select {
+	case chunks <- chunk:
+		return true
+	case <-ctx.Done():
+		errs <- ctx.Err()
+		return false
+	}
+}
+
+func reportStreamReadError(ctx context.Context, readErr error, errs chan<- error) {
+	if ctx.Err() != nil {
+		errs <- ctx.Err()
+		return
+	}
+	if readErr != io.EOF {
+		errs <- fmt.Errorf("openrouter: stream read: %w", readErr)
+	}
+}
+
+/////////////////
+// SSE Parsing //
 
 func ssePayload(line string) (string, bool) {
 	if !strings.HasPrefix(line, "data:") {
