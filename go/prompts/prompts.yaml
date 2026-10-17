@@ -251,7 +251,7 @@ instructions:
 
     For each point, provide:
     1. File location (line numbers if applicable) in the following format:
-       `go/cmd/command.go`: lines 42-44: [...]
+       `go/cmd/command.go`:42-44: [...]
        Don't forget the back quotes.
     2. Brief description of the issue
     3. Specific fix recommendation

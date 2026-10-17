@@ -14,14 +14,9 @@ import (
 	"github.com/mooss/jenai/go/highlight"
 	"github.com/mooss/jenai/go/llm"
 	"github.com/mooss/jenai/go/models"
+	"github.com/mooss/jenai/go/utils"
 	"gopkg.in/yaml.v3"
 )
-
-func cleanClose(f *os.File) {
-	if f != nil {
-		f.Close()
-	}
-}
 
 func streamAndDisplay(
 	ctx context.Context, cfg *config.Jenai, spec models.Spec, apiKey string,
@@ -37,43 +32,30 @@ func streamAndDisplay(
 	reasoningOutput := highlight.NewMarkdownStreamer(os.Stdout, "pygments", terminalColorEnabled(os.Stdout))
 	var reasoningStarted, reasoningClosed bool
 
-	teeFile := openTeeFile(teePath)
-	if teeFile != nil {
-		defer cleanClose(teeFile)
+	teeFile := utils.OpenTeeFile(teePath)
+	if teeFile.IsOpen() {
+		defer teeFile.Finish()
 		header, err := teeHeader(cfg, prompt, spec)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "can't build tee header (will proceed nonetheless): %s\n", err)
-			teeFile.Close()
-			teeFile = nil
-		} else if _, err := io.WriteString(teeFile, header); err != nil {
-			fmt.Fprintf(os.Stderr, "can't tee to %s (will proceed nonetheless): %s\n", cfg.TeeFile, err)
-			teeFile.Close()
-			teeFile = nil
+			teeFile.Finish()
+		} else {
+			teeFile.Write(header)
 		}
 	}
-	thoughtlessFile := openTeeFile(thoughtlessPath)
-	if thoughtlessFile != nil {
-		defer cleanClose(thoughtlessFile)
+	thoughtlessFile := utils.OpenTeeFile(thoughtlessPath)
+	if thoughtlessFile.IsOpen() {
+		defer thoughtlessFile.Finish()
 	}
 	var teeReasoningStarted, teeReasoningClosed bool
-	teeWrite := func(f **os.File, path, s string) {
-		if *f == nil {
-			return
-		}
-		if _, err := io.WriteString(*f, s); err != nil {
-			fmt.Fprintf(os.Stderr, "can't tee to %s (will proceed nonetheless): %s\n", path, err)
-			(*f).Close()
-			*f = nil
-		}
-	}
 
 	onReasoning := func(s string) {
-		if teeFile != nil {
+		if teeFile.IsOpen() {
 			if !teeReasoningStarted {
-				teeWrite(&teeFile, cfg.TeeFile, "<think>\n")
+				teeFile.Write("<think>\n")
 				teeReasoningStarted = true
 			}
-			teeWrite(&teeFile, cfg.TeeFile, s)
+			teeFile.Write(s)
 		}
 		if cfg.Thoughtless {
 			return
@@ -85,22 +67,25 @@ func streamAndDisplay(
 		noerr0(reasoningOutput.Write(s))
 	}
 
+	endsWithNewline := true // True by default to avoid always calling onContent.
 	onContent := func(s string) {
-		if teeFile != nil {
+		if teeFile.IsOpen() {
 			if teeReasoningStarted && !teeReasoningClosed {
-				teeWrite(&teeFile, cfg.TeeFile, "\n</think>\n")
+				teeFile.Write("\n</think>\n")
 				teeReasoningClosed = true
 			}
-			teeWrite(&teeFile, cfg.TeeFile, s)
+			teeFile.Write(s)
 		}
-		if thoughtlessFile != nil {
-			teeWrite(&thoughtlessFile, cfg.ThoughtlessTeeFile, s)
+		if thoughtlessFile.IsOpen() {
+			thoughtlessFile.Write(s)
 		}
 		if reasoningStarted && !reasoningClosed && !cfg.Thoughtless {
 			noerr0(reasoningOutput.Flush())
 			fmt.Fprint(os.Stdout, "\n", reasoningOutput.ColorizeTag("</think>"), "\n\n")
 			reasoningClosed = true
 		}
+
+		endsWithNewline = strings.HasSuffix(s, "\n")
 		noerr0(output.Write(s))
 	}
 
@@ -130,6 +115,9 @@ func streamAndDisplay(
 		noerr0(errors.New("reasoning never closed"))
 	}
 
+	if !endsWithNewline {
+		onContent("\n")
+	}
 	noerr0(output.Flush())
 
 	return nil
@@ -157,19 +145,6 @@ func canonicalTeePath(path string) string {
 		return path
 	}
 	return abs
-}
-
-func openTeeFile(path string) *os.File {
-	if path == "" {
-		return nil
-	}
-	full := canonicalTeePath(path)
-	f, err := os.OpenFile(full, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "can't tee to %s (will proceed nonetheless): %s\n", full, err)
-		return nil
-	}
-	return f
 }
 
 func teeHeader(cfg *config.Jenai, prompt config.Prompt, spec models.Spec) (string, error) {

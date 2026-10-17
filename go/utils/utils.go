@@ -3,8 +3,10 @@
 package utils
 
 import (
+	"bufio"
 	"fmt"
 	"os"
+	"path/filepath"
 	"sync"
 
 	"gopkg.in/yaml.v3"
@@ -68,4 +70,74 @@ func OnceErr[T any](mk func() (T, error)) func() (T, error) {
 		res := get()
 		return res.value, res.err
 	}
+}
+
+// TeeFile is a buffered file writer that warns to stderr but never fails.
+// Write and Finish are safe to call on nil and after failure/close.
+// Not meant for concurrent use.
+// Valid to use when nil (no-op).
+type TeeFile struct {
+	file   *os.File
+	writer *bufio.Writer
+	path   string
+	closed bool
+}
+
+// OpenTeeFile opens path for writing with a buffered writer.
+// It returns nil when path is empty or the file cannot be opened.
+func OpenTeeFile(path string) *TeeFile {
+	if path == "" {
+		return nil
+	}
+
+	full := path
+	if abs, err := filepath.Abs(path); err == nil {
+		full = abs
+	}
+
+	file, err := os.OpenFile(full, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
+	if err != nil {
+		teeWarn(path, err)
+		return nil
+	}
+
+	return &TeeFile{file: file, writer: bufio.NewWriter(file), path: path}
+}
+
+// IsOpen reports whether the file is ready for writing.
+func (t *TeeFile) IsOpen() bool {
+	return t != nil && !t.closed
+}
+
+// Write buffers s, disabling further writes on error.
+func (t *TeeFile) Write(s string) {
+	if !t.IsOpen() {
+		return
+	}
+	if _, err := t.writer.WriteString(s); err != nil {
+		teeWarn(t.path, err)
+		t.closeNow()
+	}
+}
+
+// Finish flushes the buffer and closes the file.
+func (t *TeeFile) Finish() {
+	if !t.IsOpen() {
+		return
+	}
+	if err := t.writer.Flush(); err != nil {
+		teeWarn(t.path, err)
+	}
+	t.closeNow()
+}
+
+func teeWarn(path string, err error) {
+	fmt.Fprintf(os.Stderr, "can't tee to %s (will proceed nonetheless): %s\n", path, err)
+}
+
+func (t *TeeFile) closeNow() {
+	if err := t.file.Close(); err != nil {
+		teeWarn(t.path, err)
+	}
+	t.closed = true
 }
