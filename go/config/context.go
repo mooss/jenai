@@ -13,6 +13,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"time"
 )
 
 ///////////////////
@@ -143,33 +144,34 @@ func isURL(path string) bool {
 	return err == nil && u.Host != "" && (u.Scheme == "http" || u.Scheme == "https")
 }
 
-// downloadContent downloads content from the given URL and returns an io.Reader.
-func downloadContent(fileURL string) (io.ReadCloser, error) {
+// downloadContent downloads content from the given URL.
+// The caller must close the returned reader.
+func downloadContent(fileURL string) (body io.ReadCloser, err error) {
 	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, fileURL, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to download URL %s: %w", fileURL, err)
 	}
 
-	resp, err := http.DefaultClient.Do(req)
+	client := *http.DefaultClient
+	client.Timeout = 5 * time.Second
+
+	resp, err := client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to download URL %s: %w", fileURL, err)
 	}
+	defer func() {
+		if err != nil {
+			resp.Body.Close()
+		}
+	}()
 
 	if resp.StatusCode != http.StatusOK {
-		resp.Body.Close()
 		msg := "failed to download URL %s, status code: %d"
 		return nil, fmt.Errorf(msg, fileURL, resp.StatusCode)
 	}
 
-	return readCloser{resp.Body, resp.Body.Close}, nil
+	return resp.Body, nil
 }
-
-type readCloser struct {
-	io.Reader
-	close func() error
-}
-
-func (rc readCloser) Close() error { return rc.close() }
 
 // iterFiles returns an iterator that yields all regular file paths under the given root directory.
 //
