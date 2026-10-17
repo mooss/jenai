@@ -190,6 +190,7 @@ instructions:
 
     (optional) Longer description of the changes, not everything should be
     explained, especially not the obvious things.
+    When starting a new sentence, always go to the next line.
     ```
 
     ## Guidelines
@@ -206,7 +207,8 @@ instructions:
     - Wrap lines at 72 characters.
     - Explain the *what* and *why* of the change, *not the how*. The code itself explains the *how*.
     - Include motivation for the change and how it addresses the issue.
-    - Can be ignored if the change is very simple or already well-explained in the short summary
+    - Can be ignored if the change is very simple or already well-explained in the short summary.
+    - New sentences go to the next line.
 
   idea_graph: |-
     I will present an idea.
@@ -230,6 +232,7 @@ instructions:
     - Maintainability problems
     - Violations of important architectural patterns
     - Missing error handling where essential
+    - Incorrect documentation.
 
     EXCLUDE:
     - Style preferences (indentation, spacing, naming conventions unless unclear)
