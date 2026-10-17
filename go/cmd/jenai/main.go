@@ -24,7 +24,7 @@ func main() {
 	}
 	cfg, parser := conf()
 
-	if len(os.Args) == 1 { // No arguments, print help.
+	if len(os.Args) == 1 {
 		fmt.Print(parser.Help())
 		os.Exit(0)
 	}
@@ -34,36 +34,15 @@ func main() {
 
 	noerr0(cfg.ParseCLI(parser, os.Args[1:]))
 
-	/////////////////////////////
-	// Highjack execution flow //
-	// That is to handle the flags that trigger an action and exit immediately.
-
 	library := noerr(prompts.Embedded())
 
 	if cfg.List {
-		for name := range library.Prompts {
-			fmt.Println(name)
-		}
+		printEmbeddedPromptNames(library.Prompts)
 		os.Exit(0)
 	}
 
-	if cfg.ListModels { // Align and print in sorted order.
-		specs, err := models.ModelSpecs()
-		if err != nil {
-			fatal(err)
-		}
-		longest := 0
-		for _, spec := range specs {
-			if len(spec.ShortName) > longest {
-				longest = len(spec.ShortName)
-			}
-		}
-
-		format := fmt.Sprintf("%%-%ds  (%%s/%%s)\n", longest)
-		for _, short := range slices.Sorted(maps.Keys(specs)) {
-			spec := specs[short]
-			fmt.Printf(format, spec.ShortName, spec.Provider, spec.Author)
-		}
+	if cfg.ListModels {
+		printAvailableModels()
 		os.Exit(0)
 	}
 
@@ -76,10 +55,33 @@ func main() {
 		os.Exit(0)
 	}
 
-	///////////////
-	// Execution //
-
 	run(cfg, library)
+}
+
+func printEmbeddedPromptNames(prompts map[string]string) {
+	for name := range prompts {
+		fmt.Println(name)
+	}
+}
+
+func printAvailableModels() {
+	specs, err := models.ModelSpecs()
+	if err != nil {
+		fatal(err)
+	}
+
+	longest := 0
+	for _, spec := range specs {
+		if len(spec.ShortName) > longest {
+			longest = len(spec.ShortName)
+		}
+	}
+
+	format := fmt.Sprintf("%%-%ds  (%%s/%%s)\n", longest)
+	for _, short := range slices.Sorted(maps.Keys(specs)) {
+		spec := specs[short]
+		fmt.Printf(format, spec.ShortName, spec.Provider, spec.Author)
+	}
 }
 
 //////////////////////////

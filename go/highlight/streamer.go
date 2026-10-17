@@ -38,6 +38,9 @@ func (s *MarkdownStreamer) ColorizeTag(tag string) string {
 	return "\x1b[1;91m" + tag + "\x1b[0m"
 }
 
+///////////////////
+// I/O interface //
+
 func (s *MarkdownStreamer) Write(text string) error {
 	s.pending.WriteString(text)
 	for {
@@ -86,12 +89,30 @@ func (s *MarkdownStreamer) writeLine(line string) error {
 	return s.highlight(line, "markdown")
 }
 
+//////////////////
+// Highlighting //
+
 func (s *MarkdownStreamer) highlight(text, language string) error {
 	if !s.colorEnabled {
-		_, err := io.WriteString(s.writer, text)
-		return err
+		return s.writePlainText(text)
 	}
 
+	lexer := s.highlightLexer(language)
+	if lexer == nil {
+		return s.writePlainText(text)
+	}
+
+	tokens, err := lexer.Tokenise(nil, text)
+	if err != nil {
+		return s.writePlainText(text)
+	}
+	if err := s.formatter.Format(s.writer, s.style, tokens); err != nil {
+		return s.writePlainText(text)
+	}
+	return nil
+}
+
+func (s *MarkdownStreamer) highlightLexer(language string) chroma.Lexer {
 	if s.formatter == nil {
 		s.formatter = formatters.Get("terminal256")
 	}
@@ -101,26 +122,21 @@ func (s *MarkdownStreamer) highlight(text, language string) error {
 	if s.lexerCache == nil {
 		s.lexerCache = make(map[string]chroma.Lexer)
 	}
+
 	lexer, cached := s.lexerCache[language]
 	if !cached {
 		lexer = lexers.Get(language)
 		s.lexerCache[language] = lexer
 	}
 	if lexer == nil || s.formatter == nil || s.style == nil {
-		_, err := io.WriteString(s.writer, text)
-		return err
+		return nil
 	}
+	return lexer
+}
 
-	tokens, err := lexer.Tokenise(nil, text)
-	if err != nil {
-		_, fallbackErr := io.WriteString(s.writer, text)
-		return fallbackErr
-	}
-	if err := s.formatter.Format(s.writer, s.style, tokens); err != nil {
-		_, fallbackErr := io.WriteString(s.writer, text)
-		return fallbackErr
-	}
-	return nil
+func (s *MarkdownStreamer) writePlainText(text string) error {
+	_, err := io.WriteString(s.writer, text)
+	return err
 }
 
 /////////////////////

@@ -119,43 +119,27 @@ func (conf *Jenai) ApiKeyFor(provider string) (string, error) {
 // Prompt and clipboard are mutually exclusive.
 // The prompt is evaluated.
 func (conf *Jenai) BuildPrompt(lib prompts.Library) (Prompt, error) {
-	var (
-		clipboard  string
-		context    string
-		paths      []string
-		err        error
-		positional []string
-		primary    string
-		stdin      string
-	)
-
-	positional = conf.Positional
-	if !conf.OneShot && len(conf.Positional) > 0 {
-		positional = conf.Positional[1:]
-		primary, err = prompts.NewEvalContext(lib, &positional).Evaluate(conf.Positional[0])
-		if err != nil {
-			return Prompt{}, err
-		}
-	}
-
-	if conf.Paste {
-		clipboard, err = readClipboard()
-		if err != nil {
-			return Prompt{}, err
-		}
-	}
-
-	context, paths, err = conf.Context.Build()
+	primary, positional, err := conf.buildPositional(lib)
 	if err != nil {
 		return Prompt{}, err
 	}
 
-	stdin, err = readStdin()
+	clipboard, err := conf.buildClipboard()
 	if err != nil {
 		return Prompt{}, err
 	}
 
-	res := Prompt{
+	context, paths, err := conf.Context.Build()
+	if err != nil {
+		return Prompt{}, err
+	}
+
+	stdin, err := readStdin()
+	if err != nil {
+		return Prompt{}, err
+	}
+
+	return Prompt{
 		Clipboard:    clipboard,
 		Context:      context,
 		ContextAbove: conf.Context.Above,
@@ -163,9 +147,30 @@ func (conf *Jenai) BuildPrompt(lib prompts.Library) (Prompt, error) {
 		Positional:   strings.Join(positional, " "),
 		Primary:      primary,
 		Stdin:        stdin,
+	}, nil
+}
+
+func (conf *Jenai) buildPositional(lib prompts.Library) (string, []string, error) {
+	positional := conf.Positional
+	if conf.OneShot || len(positional) == 0 {
+		return "", positional, nil
 	}
 
-	return res, nil
+	positional = positional[1:]
+	primary, err := prompts.NewEvalContext(lib, &positional).Evaluate(conf.Positional[0])
+	if err != nil {
+		return "", nil, err
+	}
+
+	return primary, positional, nil
+}
+
+func (conf *Jenai) buildClipboard() (string, error) {
+	if !conf.Paste {
+		return "", nil
+	}
+
+	return readClipboard()
 }
 
 ///////////////////////

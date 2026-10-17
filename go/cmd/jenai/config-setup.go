@@ -84,29 +84,35 @@ func ensureConfigDir() (error, bool) {
 	}
 
 	if exists {
-		info, statErr := os.Stat(dir)
-		if statErr != nil {
-			return statErr, true
-		}
-
-		if info.Mode().Perm() != 0700 {
-			if chmodErr := os.Chmod(dir, 0700); chmodErr != nil {
-				return chmodErr, true
-			}
-			fmt.Fprintf(
-				os.Stderr,
-				"warning: permissions of config directory %q changed to 0700 to make it non world-readable to protect secrets within\n",
-				dir,
-			)
-		}
-
-		return err, true
+		return ensureConfigDirPermissions(dir), true
 	}
 
 	if err := os.MkdirAll(dir, 0700); err != nil {
 		return fmt.Errorf("failed to create config dir: %w", err), false
 	}
 	return nil, false
+}
+
+func ensureConfigDirPermissions(dir string) error {
+	info, err := os.Stat(dir)
+	if err != nil {
+		return err
+	}
+
+	if info.Mode().Perm() == 0700 {
+		return nil
+	}
+
+	if err := os.Chmod(dir, 0700); err != nil {
+		return err
+	}
+
+	fmt.Fprintf(
+		os.Stderr,
+		"warning: permissions of config directory %q changed to 0700 to make it non world-readable to protect secrets within\n",
+		dir,
+	)
+	return nil
 }
 
 func writeConfigFile(path string, data []byte, perm os.FileMode) error {

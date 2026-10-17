@@ -63,12 +63,19 @@ func (c *Context) allPaths(yield func(string, error) bool) {
 	}
 
 	for _, dir := range c.Dirs {
-		for path, err := range iterFiles(dir) {
-			if !yield(path, err) {
-				return
-			}
+		if !yieldDirPaths(dir, yield) {
+			return
 		}
 	}
+}
+
+func yieldDirPaths(dir string, yield func(string, error) bool) bool {
+	for path, err := range iterFiles(dir) {
+		if !yield(path, err) {
+			return false
+		}
+	}
+	return true
 }
 
 func (*Context) wrap(err error) error {
