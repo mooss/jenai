@@ -33,45 +33,41 @@ type Jenai struct {
 	List               bool              `yaml:"list,omitempty" json:"list,omitempty"`
 	ListModels         bool              `yaml:"listmodels,omitempty" json:"listmodels,omitempty"`
 	Model              string            `yaml:"model,omitempty" json:"model,omitempty"`
-	OneShot            bool              `yaml:"oneshot,omitempty" json:"oneshot,omitempty"`
 	Paste              bool              `yaml:"paste,omitempty" json:"paste,omitempty"`
 	Positional         []string          `yaml:"positional,omitempty" json:"positional,omitempty"`
 	Thoughtless        bool              `yaml:"thoughtless,omitempty" json:"thoughtless,omitempty"`
 	ThoughtlessTeeFile string            `yaml:"thoughtlessteefile,omitempty" json:"thoughtlessteefile,omitempty"` //nolint:revive
 	TeeFile            string            `yaml:"teefile,omitempty" json:"teefile,omitempty"`
+
+	DumpConfig bool `yaml:"-" json:"-"`
 }
 
 /////////////////////////////////
 // Construction and validation //
 
-func (conf *Jenai) RegisterCLI() *flag.Parser {
-	parser := flag.NewParser()
-	parser.Bool("context-above", &conf.Context.Above,
+func (conf *Jenai) LLMRequestFlags() *flag.Parser {
+	flags := flag.NewParser().WithPositionalArguments()
+
+	flags.Bool("context-above", &conf.Context.Above,
 		"Put context files and dir above instructions")
-	parser.StringSlice("dir", &conf.Context.Dirs, "Include all files in directory as context")
-	parser.Bool("dry-run", &conf.DryRun, "Print interpolated prompt without sending to LLM").
+	flags.StringSlice("dir", &conf.Context.Dirs, "Include all files in directory as context")
+	flags.Bool("dry-run", &conf.DryRun, "Print interpolated prompt without sending to LLM").
 		Alias("n")
-	parser.StringSlice("file", &conf.Context.Files, "Include specific file(s) as context")
-	parser.Bool("list", &conf.List, "list all available prompts").
-		Alias("l")
-	parser.Bool("list-models", &conf.ListModels, "list all available models").
-		Alias("lm")
-	parser.Bool("linum", &conf.Context.LineNumbers, "Print files with line numbers")
-	parser.String(
-		"model", &conf.Model, "Model name (short name from --lm or provider:author/model)",
-	).Alias("m").Default("ds41-flash")
-	parser.Bool("oneshot", &conf.OneShot, "Use positional arguments as the prompt").
-		Alias("o")
-	parser.Bool("paste", &conf.Paste, "Use clipboard content as prompt")
-	parser.String("tee", &conf.TeeFile, "Output first answer to both stdout and FILE (overwritten)")
-	parser.Bool("thoughtless", &conf.Thoughtless,
-		"Hide model reasoning").
-		Alias("t")
-	parser.String("thoughtless-tee", &conf.ThoughtlessTeeFile,
+	flags.StringSlice("file", &conf.Context.Files, "Include specific file(s) as context")
+	flags.Bool("linum", &conf.Context.LineNumbers, "Print files with line numbers")
+	flags.String(
+		"model", &conf.Model, "Model name (short name from `model-zoo` or provider:author/model)",
+	).Alias("m").Default("spark")
+	flags.Bool("paste", &conf.Paste, "Use clipboard content as prompt")
+	flags.String("tee", &conf.TeeFile, "Output first answer to both stdout and FILE (overwritten)")
+	flags.Bool("thoughtless", &conf.Thoughtless, "Hide model reasoning").Alias("t")
+	flags.String("thoughtless-tee", &conf.ThoughtlessTeeFile,
 		"Output first answer to FILE without the reasoning block (overwritten)").
 		Alias("tt")
 
-	return parser
+	flags.Bool("dump-config", &conf.DumpConfig, "dump the config to stdout and exit")
+
+	return flags
 }
 
 // ParseCLI fills the fields from CLI arguments.
@@ -117,7 +113,6 @@ func (conf *Jenai) APIKeyFor(provider string) (string, error) {
 
 // BuildPrompt returns the complete prompt, taking all sources into account (prompt, clipboard,
 // positional argument, and stdin).
-// Prompt and clipboard are mutually exclusive.
 // The prompt is evaluated.
 func (conf *Jenai) BuildPrompt(lib prompts.Library) (Prompt, error) {
 	primary, positional, err := conf.buildPositional(lib)
@@ -125,6 +120,15 @@ func (conf *Jenai) BuildPrompt(lib prompts.Library) (Prompt, error) {
 		return Prompt{}, err
 	}
 
+	return conf.buildPrompt(primary, positional)
+}
+
+// BuildOneshotPrompt returns the complete prompt for an ad-hoc positional prompt.
+func (conf *Jenai) BuildOneshotPrompt() (Prompt, error) {
+	return conf.buildPrompt("", conf.Positional)
+}
+
+func (conf *Jenai) buildPrompt(primary string, positional []string) (Prompt, error) {
 	clipboard, err := conf.buildClipboard()
 	if err != nil {
 		return Prompt{}, err
@@ -153,7 +157,7 @@ func (conf *Jenai) BuildPrompt(lib prompts.Library) (Prompt, error) {
 
 func (conf *Jenai) buildPositional(lib prompts.Library) (string, []string, error) {
 	positional := conf.Positional
-	if conf.OneShot || len(positional) == 0 {
+	if len(positional) == 0 {
 		return "", positional, nil
 	}
 

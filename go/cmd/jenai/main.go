@@ -12,7 +12,7 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/mooss/bagend/go/flag"
+	"github.com/mooss/bagend/go/cmd"
 	"github.com/mooss/jenai/go/config"
 	"github.com/mooss/jenai/go/models"
 	"github.com/mooss/jenai/go/prompts"
@@ -22,40 +22,9 @@ func main() {
 	if err := ensureConfig(); err != nil {
 		fatal(err)
 	}
-	cfg, parser := conf()
 
-	if len(os.Args) == 1 {
-		fmt.Print(parser.Help())
-		os.Exit(0)
-	}
-
-	dumpConfig := false
-	parser.Bool("dump-config", &dumpConfig, "print the config and exit")
-
-	noerr0(cfg.ParseCLI(parser, os.Args[1:]))
-
-	library := noerr(prompts.Embedded())
-
-	if cfg.List {
-		printEmbeddedPromptNames(library.Prompts)
-		os.Exit(0)
-	}
-
-	if cfg.ListModels {
-		printAvailableModels()
-		os.Exit(0)
-	}
-
-	if dumpConfig {
-		spec := noerr(modelSpec(cfg))
-		fmt.Println(pretty(map[string]any{
-			"model":  spec,
-			"config": cfg,
-		}))
-		os.Exit(0)
-	}
-
-	run(cfg, library)
+	jenai := setupCommand(noerr(prompts.Embedded()))
+	noerr0(jenai.Execute(os.Args[1:]))
 }
 
 func printEmbeddedPromptNames(promptNames map[string]string) {
@@ -87,21 +56,59 @@ func printAvailableModels() {
 //////////////////////////
 // High-level utilities //
 
-func conf() (*config.Jenai, *flag.Parser) {
+func setupCommand(library prompts.Library) *cmd.Command {
 	cfg := config.Jenai{}
 	dir, err := config.Root()
 	if err != nil {
 		fatal(err)
 	}
 	noerr0(cfg.LoadFile(filepath.Join(dir, "config.yaml")))
-	parser := cfg.RegisterCLI()
-	flag.WithHelp(os.Args[0], "PROMPT ...ARGS")(parser)
 
-	return &cfg, parser
+	jenai := cmd.New(os.Args[0], "CLI prompt builder").Usage("COMMAND ...ARGS")
+	jenai.Runner(func() error {
+		fmt.Print(jenai.Help())
+		return nil
+	})
+
+	promptFlags := cfg.LLMRequestFlags()
+	prompt := cmd.New("prompt", "Use a prompt from the prompt library").
+		Alias("p").EmplaceFlags(promptFlags).Runner(func() error {
+		cfg.Positional = promptFlags.Positional
+		return run(&cfg, func() (config.Prompt, error) { return cfg.BuildPrompt(library) })
+	})
+	oneshotFlags := cfg.LLMRequestFlags()
+	oneshot := cmd.New("oneshot", "Create an ad-hoc prompt from positional arguments").
+		Alias("o").EmplaceFlags(oneshotFlags).Runner(func() error {
+		cfg.Positional = oneshotFlags.Positional
+		return run(&cfg, cfg.BuildOneshotPrompt)
+	})
+	modelZoo := cmd.New("model-zoo", "List the content of the model zoo").Alias("mz").
+		Runner(func() error {
+			printAvailableModels()
+			return nil
+		})
+	promptLibrary := cmd.New("prompt-library", "List the content of the prompt library").
+		Alias("pl").Runner(func() error {
+		printEmbeddedPromptNames(library.Prompts)
+		return nil
+	})
+
+	jenai.RegisterSubs(prompt, oneshot, modelZoo, promptLibrary)
+
+	return jenai
 }
 
-func run(cfg *config.Jenai, lib prompts.Library) {
-	prompt := noerr(cfg.BuildPrompt(lib))
+func run(cfg *config.Jenai, mkprompt func() (config.Prompt, error)) error {
+	if cfg.DumpConfig {
+		spec := noerr(modelSpec(cfg))
+		fmt.Println(pretty(map[string]any{
+			"model":  spec,
+			"config": cfg,
+		}))
+		os.Exit(0)
+	}
+
+	prompt := noerr(mkprompt())
 
 	if cfg.DryRun {
 		fmt.Println(prompt)
@@ -109,7 +116,7 @@ func run(cfg *config.Jenai, lib prompts.Library) {
 	}
 
 	if prompt.Empty() {
-		fatal(errors.New("the prompt is empty"))
+		return errors.New("the prompt is empty")
 	}
 
 	spec := noerr(modelSpec(cfg))
@@ -118,9 +125,7 @@ func run(cfg *config.Jenai, lib prompts.Library) {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	if err := streamAndDisplay(ctx, cfg, spec, apiKey, prompt, prompt.String()); err != nil {
-		fatal(err)
-	}
+	return streamAndDisplay(ctx, cfg, spec, apiKey, prompt, prompt.String())
 }
 
 func modelSpec(cfg *config.Jenai) (models.Spec, error) {

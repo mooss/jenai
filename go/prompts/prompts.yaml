@@ -193,6 +193,8 @@ instructions:
     When starting a new sentence, always go to the next line.
     ```
 
+    When reffering to source entities (like function or variable names), quote them with `backquotes`.
+
     ## Guidelines
 
     For the short summary:
