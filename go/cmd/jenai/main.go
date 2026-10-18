@@ -13,6 +13,7 @@ import (
 	"syscall"
 
 	"github.com/mooss/bagend/go/cmd"
+	"github.com/mooss/bagend/go/flag"
 	"github.com/mooss/jenai/go/config"
 	"github.com/mooss/jenai/go/models"
 	"github.com/mooss/jenai/go/prompts"
@@ -76,24 +77,33 @@ func setupCommand(library prompts.Library) *cmd.Command {
 		cfg.Positional = promptFlags.Positional
 		return run(&cfg, func() (config.Prompt, error) { return cfg.BuildPrompt(library) })
 	})
+
 	oneshotFlags := cfg.LLMRequestFlags()
 	oneshot := cmd.New("oneshot", "Create an ad-hoc prompt from positional arguments").
 		Alias("o").EmplaceFlags(oneshotFlags).Runner(func() error {
 		cfg.Positional = oneshotFlags.Positional
 		return run(&cfg, cfg.BuildOneshotPrompt)
 	})
+
 	modelZoo := cmd.New("model-zoo", "List the content of the model zoo").Alias("mz").
 		Runner(func() error {
 			printAvailableModels()
 			return nil
 		})
+
+	capaFlags := flag.NewParser().WithPositionalArguments()
+	capa := cmd.New("capa", "List a model's OpenRouter capabilities").
+		EmplaceFlags(capaFlags).Runner(func() error {
+		return runCapa(&cfg, capaFlags.Positional)
+	})
+
 	promptLibrary := cmd.New("prompt-library", "List the content of the prompt library").
 		Alias("pl").Runner(func() error {
 		printEmbeddedPromptNames(library.Prompts)
 		return nil
 	})
 
-	jenai.RegisterSubs(prompt, oneshot, modelZoo, promptLibrary)
+	jenai.RegisterSubs(oneshot, prompt, capa, modelZoo, promptLibrary)
 
 	return jenai
 }
