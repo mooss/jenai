@@ -12,7 +12,7 @@ import (
 
 	"github.com/mooss/jenai/go/config"
 	"github.com/mooss/jenai/go/highlight"
-	"github.com/mooss/jenai/go/llm"
+	"github.com/mooss/jenai/go/llm/openrouter"
 	"github.com/mooss/jenai/go/models"
 	"github.com/mooss/jenai/go/utils"
 	"gopkg.in/yaml.v3"
@@ -36,7 +36,7 @@ func streamAndDisplay(
 
 	d := newDisplay(cfg, teeFile, thoughtlessFile)
 
-	chunks, errs, err := llm.Stream(ctx, spec, apiKey, promptStr)
+	chunks, errs, err := openrouter.Stream(ctx, spec, apiKey, promptStr)
 	noerr0(err)
 	for chunk := range chunks {
 		d.handleChunk(chunk)
@@ -109,7 +109,7 @@ func (d *display) onContent(s string) {
 	noerr0(d.output.Write(s))
 }
 
-func (d *display) handleChunk(chunk llm.Chunk) {
+func (d *display) handleChunk(chunk openrouter.Chunk) {
 	if len(chunk.Choices) == 0 {
 		if chunk.Usage != nil {
 			return // Expected final usage-only chunk from `IncludeUsage: true`.
