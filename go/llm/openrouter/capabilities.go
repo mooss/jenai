@@ -24,7 +24,7 @@ type Capabilities struct {
 func FetchCapabilities(
 	ctx context.Context, spec models.Spec, apiKey string,
 ) (Capabilities, error) {
-	params := ModelId{Author: spec.Author, Slug: spec.Model}
+	params := ModelID{Author: spec.Author, Slug: spec.Model}
 
 	model, err := fetchCatalogRecord(ctx, catalogURL("model", params), apiKey)
 	if err != nil {
@@ -40,7 +40,7 @@ func FetchCapabilities(
 	return Capabilities{Model: model, Endpoints: endpoints}, nil
 }
 
-func catalogURL(resource string, params ModelId) string {
+func catalogURL(resource string, params ModelID) string {
 	author := url.PathEscape(params.Author)
 	slug := url.PathEscape(params.Slug)
 	return "https://openrouter.ai/api/v1/" + resource + "/" + author + "/" + slug
@@ -49,7 +49,7 @@ func catalogURL(resource string, params ModelId) string {
 const maxCatalogResponseBytes int64 = 10 << 20 // 10 MiB.
 
 func fetchCatalogRecord(ctx context.Context, endpoint, apiKey string) (json.RawMessage, error) {
-	headers := OpenRouterHeaders{}
+	headers := Headers{}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
 	if err != nil {

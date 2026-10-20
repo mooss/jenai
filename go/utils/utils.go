@@ -4,7 +4,6 @@ package utils
 
 import (
 	"bufio"
-	jsonv2 "encoding/json/v2"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -33,17 +32,6 @@ func FromYAMLFile[T any](datapath string) (T, error) {
 	}
 
 	return FromYAML[T](data)
-}
-
-// FromJSON unmarshals JSON data to the given type.
-func FromJSON[T any](data []byte) (T, error) {
-	var res T
-	if err := jsonv2.Unmarshal(data, &res); err != nil {
-		var zero T
-		return zero, err
-	}
-
-	return res, nil
 }
 
 // Wrapf wraps a non-nil err and prefixes it with a formatted string.

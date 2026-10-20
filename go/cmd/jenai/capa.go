@@ -5,10 +5,10 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/mooss/bagend/go/codec"
 	"github.com/mooss/jenai/go/config"
 	"github.com/mooss/jenai/go/llm/openrouter"
 	"github.com/mooss/jenai/go/models"
-	"github.com/mooss/jenai/go/utils"
 )
 
 func runCapa(cfg *config.Jenai, args []string, source string) error {
@@ -64,12 +64,14 @@ func capaModelSpec(args []string, source string) (models.Spec, error) {
 func decodeCapaCapabilities(
 	capabilities openrouter.Capabilities, endpointOnly bool,
 ) (any, any, error) {
-	modelResponse, err := utils.FromJSON[openrouter.GetModelResponse](capabilities.Model)
+	modelResponse, err := codec.FromJSONOpt[
+		openrouter.GetModelResponse, codec.WarnUnknownFields,
+	](capabilities.Model)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	endpointsResponse, err := utils.FromJSON[any](capabilities.Endpoints)
+	endpointsResponse, err := codec.FromJSON[any](capabilities.Endpoints)
 	if err != nil {
 		return nil, nil, err
 	}

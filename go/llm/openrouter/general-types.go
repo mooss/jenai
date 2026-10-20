@@ -8,14 +8,14 @@ import (
 	"net/http"
 )
 
-// ModelId contains the required parameters to identify a model.
-type ModelId struct {
+// ModelID contains the required parameters to identify a model.
+type ModelID struct {
 	Author string `json:"author" yaml:"author"`
 	Slug   string `json:"slug" yaml:"slug"`
 }
 
-// OpenRouterHeaders contains the optional app-identification headers for an operation.
-type OpenRouterHeaders struct {
+// Headers contains the optional app-identification headers for an operation.
+type Headers struct {
 	HTTPReferer          string `json:"HTTP-Referer,omitempty" yaml:"HTTP-Referer,omitempty"`
 	OpenRouterTitle      string `json:"X-OpenRouter-Title,omitempty" yaml:"X-OpenRouter-Title,omitempty"`
 	OpenRouterCategories string `json:"X-OpenRouter-Categories,omitempty" yaml:"X-OpenRouter-Categories,omitempty"`
