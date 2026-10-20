@@ -56,10 +56,6 @@ func capaModelSpec(args []string, source string) (models.Spec, error) {
 	if len(args) != 1 {
 		return models.Spec{}, errors.New("usage: jenai capa MODEL")
 	}
-	if source != "overview" && source != "endpoints" {
-		msg := "unsupported source %q (expected overview or endpoints)"
-		return models.Spec{}, fmt.Errorf(msg, source)
-	}
 
 	spec, err := modelSpec(&config.Jenai{Model: args[0]})
 	if err != nil {

@@ -5,10 +5,8 @@ github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/dlclark/regexp2 v1.4.0 h1:F1rxgk7p4uKjwIQxBs9oAXe5CqrXlCduYEJvrF4u93E=
 github.com/dlclark/regexp2 v1.4.0/go.mod h1:2pZnwuY/m+8K6iRw6wQdMtk+rH5tNGR1i55kozfMjCc=
-github.com/mooss/bagend v0.0.0-20261020113005-5982553d1116 h1:3JRWPnwusrbyJp7MSvd3ybjvBJL6qgsrez95ml2JY3I=
-github.com/mooss/bagend v0.0.0-20261020113005-5982553d1116/go.mod h1:45WiOCXWaO6SWj1HKSCeBSpJ22LVjEy7anfhBUg5MXw=
-github.com/mooss/bagend v0.0.0-20261020114656-61a0aec57fe3 h1:tGpVRzU57R9qOpm/NBxsYgNABSRwoRCgXqF+zJk2i28=
-github.com/mooss/bagend v0.0.0-20261020114656-61a0aec57fe3/go.mod h1:45WiOCXWaO6SWj1HKSCeBSpJ22LVjEy7anfhBUg5MXw=
+github.com/mooss/bagend v0.0.0-20261020155318-32b88d505a6b h1:OsR0uUi8oRG8976MDevS+WgDqqAkZ5aPP6UFRWRnA80=
+github.com/mooss/bagend v0.0.0-20261020155318-32b88d505a6b/go.mod h1:45WiOCXWaO6SWj1HKSCeBSpJ22LVjEy7anfhBUg5MXw=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
