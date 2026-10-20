@@ -9,6 +9,7 @@ import (
 
 	"github.com/mooss/bagend/go/fun"
 	"github.com/mooss/bagend/go/fun/eager/lie"
+	"github.com/mooss/bagend/go/fun/eager/mae"
 	"github.com/mooss/jenai/go/config"
 	"github.com/mooss/jenai/go/llm/openrouter"
 	"github.com/mooss/jenai/go/models"
@@ -35,15 +36,11 @@ func regenModelZoo(cfg *config.Jenai, args []string) (retErr error) {
 		ctx:    context.Background(),
 		apiKey: cfg.APIKeys["openrouter"],
 	}
-	output := models.Zoo{Models: map[string]models.Spec{}}
-
-	for name, spec := range specs {
-		spec, err := specup.update(spec)
-		if err != nil {
-			return err
-		}
-		output.Models[name] = spec
+	updated, err := mae.MapE(specup.update, specs)
+	if err != nil {
+		return err
 	}
+	output := models.Zoo{Models: updated}
 
 	data, err := utils.ToYAML(output)
 	if err != nil {

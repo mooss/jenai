@@ -19,6 +19,8 @@ lint:
 	  --max-same-issues 0\
 	  --allow-parallel-runners
 
+update-bagend:
+	go get github.com/mooss/bagend && go mod tidy
 
 install:
 	go install ./go/cmd/jenai
