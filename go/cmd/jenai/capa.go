@@ -61,8 +61,10 @@ func capaModelSpec(args []string, source string) (models.Spec, error) {
 	return spec, nil
 }
 
-func decodeCapaCapabilities(capabilities openrouter.Capabilities, endpointOnly bool) (any, any, error) {
-	model, err := utils.FromJSON[any](capabilities.Model)
+func decodeCapaCapabilities(
+	capabilities openrouter.Capabilities, endpointOnly bool,
+) (any, any, error) {
+	modelResponse, err := utils.FromJSON[openrouter.GetModelResponse](capabilities.Model)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -77,7 +79,7 @@ func decodeCapaCapabilities(capabilities openrouter.Capabilities, endpointOnly b
 		return nil, nil, err
 	}
 
-	return model, endpoints, nil
+	return modelResponse.Data, endpoints, nil
 }
 
 func filterEndpointCapabilities(response any, onlyEndpoints bool) (any, error) {

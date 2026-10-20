@@ -33,6 +33,8 @@ linters:
           disabled: true
         - name: package-naming
           disabled: true
+        - name: max-public-structs
+          disabled: true
   exclusions:
     generated: lax
     presets:

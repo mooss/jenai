@@ -24,12 +24,14 @@ type Capabilities struct {
 func FetchCapabilities(
 	ctx context.Context, spec models.Spec, apiKey string,
 ) (Capabilities, error) {
-	model, err := fetchCatalogRecord(ctx, catalogURL("model", spec), apiKey)
+	params := ModelId{Author: spec.Author, Slug: spec.Model}
+
+	model, err := fetchCatalogRecord(ctx, catalogURL("model", params), apiKey)
 	if err != nil {
 		return Capabilities{}, fmt.Errorf("openrouter: fetch model capabilities: %w", err)
 	}
 
-	endpointsURL := catalogURL("models", spec) + "/endpoints"
+	endpointsURL := catalogURL("models", params) + "/endpoints"
 	endpoints, err := fetchCatalogRecord(ctx, endpointsURL, apiKey)
 	if err != nil {
 		return Capabilities{}, fmt.Errorf("openrouter: fetch endpoint capabilities: %w", err)
@@ -38,22 +40,31 @@ func FetchCapabilities(
 	return Capabilities{Model: model, Endpoints: endpoints}, nil
 }
 
-func catalogURL(resource string, spec models.Spec) string {
-	author := url.PathEscape(spec.Author)
-	slug := url.PathEscape(spec.Model)
+func catalogURL(resource string, params ModelId) string {
+	author := url.PathEscape(params.Author)
+	slug := url.PathEscape(params.Slug)
 	return "https://openrouter.ai/api/v1/" + resource + "/" + author + "/" + slug
 }
 
 const maxCatalogResponseBytes int64 = 10 << 20 // 10 MiB.
 
-func fetchCatalogRecord(
-	ctx context.Context, endpoint, apiKey string,
-) (json.RawMessage, error) {
+func fetchCatalogRecord(ctx context.Context, endpoint, apiKey string) (json.RawMessage, error) {
+	headers := OpenRouterHeaders{}
+
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header.Set("Accept", "application/json")
+	if headers.HTTPReferer != "" {
+		req.Header.Set("HTTP-Referer", headers.HTTPReferer)
+	}
+	if headers.OpenRouterTitle != "" {
+		req.Header.Set("X-OpenRouter-Title", headers.OpenRouterTitle)
+	}
+	if headers.OpenRouterCategories != "" {
+		req.Header.Set("X-OpenRouter-Categories", headers.OpenRouterCategories)
+	}
 	if strings.TrimSpace(apiKey) != "" {
 		req.Header.Set("Authorization", "Bearer "+apiKey)
 	}

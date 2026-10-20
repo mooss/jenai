@@ -135,16 +135,6 @@ func newRequest(
 	return req, nil
 }
 
-func checkStatus(resp *http.Response) error {
-	if resp.StatusCode == http.StatusOK {
-		return nil
-	}
-
-	data, _ := io.ReadAll(io.LimitReader(resp.Body, 4*1024))
-	msg := "openrouter: unexpected status %s: %s"
-	return fmt.Errorf(msg, resp.Status, strings.TrimSpace(string(data)))
-}
-
 //////////////
 // SSE Scan //
 
