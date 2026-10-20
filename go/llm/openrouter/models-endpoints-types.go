@@ -12,7 +12,7 @@ type ModelEndpointsData struct {
 	Created      int64             `json:"created" yaml:"created"`
 	Description  string            `json:"description" yaml:"description"`
 	Architecture ModelArchitecture `json:"architecture" yaml:"architecture"`
-	Endpoints    []ModelEndpoint   `json:"endpoints" yaml:"endpoints"`
+	Endpoints    []ModelEndpoint   `json:"endpoints,omitempty" yaml:"endpoints,omitempty"`
 }
 
 type ModelEndpoint struct {

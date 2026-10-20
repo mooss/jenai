@@ -7,43 +7,21 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"net/url"
 	"strings"
 
-	"github.com/mooss/jenai/go/models"
+	"github.com/mooss/bagend/go/codec"
 )
 
-// Capabilities contains the model and endpoint records from the OpenRouter catalog.
-type Capabilities struct {
-	Model     json.RawMessage `json:"model"`
-	Endpoints json.RawMessage `json:"endpoints"`
-}
-
-// FetchCapabilities retrieves the model-level and endpoint-level catalog records.
-// An empty API key makes anonymous catalog requests.
-func FetchCapabilities(
-	ctx context.Context, spec models.Spec, apiKey string,
-) (Capabilities, error) {
-	params := ModelID{Author: spec.Author, Slug: spec.Model}
-
-	model, err := fetchCatalogRecord(ctx, catalogURL("model", params), apiKey)
+func FetchCatalogRecord[T any](
+	ctx context.Context, endpoint, apiKey string,
+) (T, error) {
+	data, err := fetchCatalogRecord(ctx, endpoint, apiKey)
 	if err != nil {
-		return Capabilities{}, fmt.Errorf("openrouter: fetch model capabilities: %w", err)
+		var zero T
+		return zero, err
 	}
 
-	endpointsURL := catalogURL("models", params) + "/endpoints"
-	endpoints, err := fetchCatalogRecord(ctx, endpointsURL, apiKey)
-	if err != nil {
-		return Capabilities{}, fmt.Errorf("openrouter: fetch endpoint capabilities: %w", err)
-	}
-
-	return Capabilities{Model: model, Endpoints: endpoints}, nil
-}
-
-func catalogURL(resource string, params ModelID) string {
-	author := url.PathEscape(params.Author)
-	slug := url.PathEscape(params.Slug)
-	return "https://openrouter.ai/api/v1/" + resource + "/" + author + "/" + slug
+	return codec.FromJSONOpt[T, codec.WarnUnknownFields](data)
 }
 
 const maxCatalogResponseBytes int64 = 10 << 20 // 10 MiB.

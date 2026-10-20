@@ -4,8 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/url"
 
-	"github.com/mooss/bagend/go/codec"
 	"github.com/mooss/jenai/go/config"
 	"github.com/mooss/jenai/go/llm/openrouter"
 	"github.com/mooss/jenai/go/models"
@@ -17,28 +17,39 @@ func runCapa(cfg *config.Jenai, args []string, source string) error {
 		return err
 	}
 
-	capabilities, err := openrouter.FetchCapabilities(
-		context.Background(), spec, cfg.APIKeys[spec.Provider],
+	ctx := context.Background()
+	apiKey := cfg.APIKeys[spec.Provider]
+	endpointsResponse, err := openrouter.FetchCatalogRecord[openrouter.ListEndpointsResponse](
+		ctx, modelURL(spec, "models")+"/endpoints", apiKey,
 	)
 	if err != nil {
-		return err
-	}
-
-	model, endpoints, err := decodeCapabilities(capabilities, source == "endpoints")
-	if err != nil {
-		return err
+		return fmt.Errorf("openrouter: fetch endpoint capabilities: %w", err)
 	}
 
 	if source == "endpoints" {
-		fmt.Println(pretty(endpoints))
+		endpoints := endpointsResponse.Data.Endpoints
+		prettyPrint(endpoints)
 		return nil
 	}
 
-	fmt.Println(pretty(map[string]any{
-		"model":     model,
-		"endpoints": endpoints,
-	}))
+	modelResponse, err := openrouter.FetchCatalogRecord[openrouter.GetModelResponse](
+		ctx, modelURL(spec, "model"), apiKey,
+	)
+	if err != nil {
+		return fmt.Errorf("openrouter: fetch model capabilities: %w", err)
+	}
+
+	endpointsResponse.Data.Endpoints = nil
+	prettyPrint(map[string]any{
+		"model":     modelResponse.Data,
+		"endpoints": endpointsResponse,
+	})
 	return nil
+}
+
+func modelURL(spec models.Spec, resource string) string {
+	return "https://openrouter.ai/api/v1/" + resource + "/" +
+		url.PathEscape(spec.Author) + "/" + url.PathEscape(spec.Model)
 }
 
 func capaModelSpec(args []string, source string) (models.Spec, error) {
@@ -46,7 +57,8 @@ func capaModelSpec(args []string, source string) (models.Spec, error) {
 		return models.Spec{}, errors.New("usage: jenai capa MODEL")
 	}
 	if source != "overview" && source != "endpoints" {
-		return models.Spec{}, fmt.Errorf("unsupported source %q (expected overview or endpoints)", source)
+		msg := "unsupported source %q (expected overview or endpoints)"
+		return models.Spec{}, fmt.Errorf(msg, source)
 	}
 
 	spec, err := modelSpec(&config.Jenai{Model: args[0]})
@@ -59,58 +71,4 @@ func capaModelSpec(args []string, source string) (models.Spec, error) {
 	}
 
 	return spec, nil
-}
-
-func decodeCapabilities(
-	capabilities openrouter.Capabilities, endpointOnly bool,
-) (any, any, error) {
-	modelResponse, err := codec.FromJSONOpt[
-		openrouter.GetModelResponse, codec.WarnUnknownFields,
-	](capabilities.Model)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	if endpointOnly {
-		endpointsResponse, err := codec.FromJSONOpt[
-			openrouter.ListEndpointsResponse, codec.WarnUnknownFields,
-		](capabilities.Endpoints)
-		if err != nil {
-			return nil, nil, err
-		}
-		return modelResponse.Data, endpointsResponse.Data.Endpoints, nil
-	}
-
-	endpointsResponse, err := codec.FromJSON[any](capabilities.Endpoints)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	endpoints, err := filterEndpointCapabilities(endpointsResponse, false)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return modelResponse.Data, endpoints, nil
-}
-
-func filterEndpointCapabilities(response any, onlyEndpoints bool) (any, error) {
-	responseMap, ok := response.(map[string]any)
-	if !ok {
-		return nil, errors.New("invalid endpoint response: expected an object")
-	}
-	data, ok := responseMap["data"].(map[string]any)
-	if !ok {
-		return nil, errors.New("invalid endpoint response: missing data object")
-	}
-	endpoints, ok := data["endpoints"]
-	if !ok {
-		return nil, errors.New("invalid endpoint response: missing data.endpoints")
-	}
-	if onlyEndpoints {
-		return endpoints, nil
-	}
-
-	delete(data, "endpoints")
-	return responseMap, nil
 }

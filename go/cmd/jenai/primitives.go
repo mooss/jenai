@@ -31,6 +31,10 @@ func pretty(data any) string {
 	return buf.String()
 }
 
+func prettyPrint(data any) {
+	fmt.Print(pretty(data))
+}
+
 func structToMap(data any) (map[string]any, error) {
 	yamlbytes, err := yaml.Marshal(data)
 	if err != nil {
