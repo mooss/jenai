@@ -76,3 +76,10 @@ jq --argjson path\
 ```
 
 `jenai` will output instructions on how to update the code.
+
+## Updating model zoo
+
+To update stale information from the model zoo or to populate the fields from a newly-added model, use:
+```bash
+jenai model-zoo regen go/models/models.yaml
+```

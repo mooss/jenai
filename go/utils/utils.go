@@ -4,6 +4,7 @@ package utils
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -32,6 +33,23 @@ func FromYAMLFile[T any](datapath string) (T, error) {
 	}
 
 	return FromYAML[T](data)
+}
+
+// ToYAML marshalls arbitrary data to YAML.
+func ToYAML[T any](source T) ([]byte, error) {
+	var buf bytes.Buffer
+	enc := yaml.NewEncoder(&buf)
+	enc.SetIndent(2)
+
+	if err := enc.Encode(source); err != nil {
+		return nil, err
+	}
+
+	if err := enc.Close(); err != nil {
+		return nil, err
+	}
+
+	return buf.Bytes(), nil
 }
 
 // Wrapf wraps a non-nil err and prefixes it with a formatted string.

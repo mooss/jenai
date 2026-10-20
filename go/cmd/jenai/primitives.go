@@ -1,9 +1,10 @@
 package main
 
 import (
-	"bytes"
 	"fmt"
 	"os"
+
+	"github.com/mooss/jenai/go/utils"
 
 	"gopkg.in/yaml.v3"
 )
@@ -23,12 +24,7 @@ func noerr[T any](res T, err error) T {
 func noerr0(err error) { noerr(0, err) }
 
 func pretty(data any) string {
-	var buf bytes.Buffer
-	enc := yaml.NewEncoder(&buf)
-	enc.SetIndent(2)
-	noerr0(enc.Encode(data))
-	noerr0(enc.Close())
-	return buf.String()
+	return string(noerr(utils.ToYAML(data)))
 }
 
 func prettyPrint(data any) {

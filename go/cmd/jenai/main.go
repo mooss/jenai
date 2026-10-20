@@ -91,6 +91,13 @@ func setupCommand(library prompts.Library) *cmd.Command {
 			return nil
 		})
 
+	regenFlags := flag.NewParser().WithPositionalArguments()
+	regen := cmd.New("regen", "Regenerate the model zoo YAML with current OpenRouter info").
+		EmplaceFlags(regenFlags).Runner(func() error {
+		return regenModelZoo(&cfg, regenFlags.Positional)
+	})
+	modelZoo.RegisterSubs(regen)
+
 	capaFlags := flag.NewParser().WithPositionalArguments()
 	source := ""
 	capaFlags.String(

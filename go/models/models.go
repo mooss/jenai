@@ -13,13 +13,25 @@ var EmbeddedBytes []byte
 
 type Spec struct {
 	// ShortName of the model, e.g., "r1".
-	ShortName string `yaml:"short_name"`
+	ShortName string `yaml:"short_name,omitempty"`
+
 	// Provider of the model, e.g., "openrouter".
 	Provider string `yaml:"provider"`
+
 	// Author of the model, e.g., "deepseek".
 	Author string `yaml:"author"`
+
 	// Model identifier, e.g., "deepseek-r1-0528:nitro".
 	Model string `yaml:"model"`
+
+	// Reasoning parameters.
+	Reasoning *ReasoningSpec `yaml:"reasoning,omitempty"`
+}
+
+// ReasoningSpec stores optional reasoning settings for a predefined model.
+type ReasoningSpec struct {
+	SupportedEfforts []string `yaml:"supported_efforts,omitempty"`
+	DefaultEffort    string   `yaml:"default_effort,omitempty"`
 }
 
 type Zoo struct {
