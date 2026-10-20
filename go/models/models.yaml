@@ -9,20 +9,15 @@ models:
     author: z-ai
     model: glm-5.3
 
-  ds4-flash:
+  ds-flash:
     provider: openrouter
-    author: deepseek
-    model: deepseek-v4-flash-0731
+    author: ~deepseek
+    model: deepseek-flash-latest
 
-  ds41-flash:
+  ds-pro:
     provider: openrouter
-    author: deepseek
-    model: deepseek-v4.1-flash
-
-  ds4-pro:
-    provider: openrouter
-    author: deepseek
-    model: deepseek-v4-pro-0813
+    author: ~deepseek
+    model: deepseek-pro-latest
 
   minimax3:
     provider: openrouter
