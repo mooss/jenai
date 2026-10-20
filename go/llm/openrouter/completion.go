@@ -80,8 +80,8 @@ type chatReasoning struct {
 ////////////
 // Stream //
 
-// Stream starts a streaming completion and returns the raw chunk and error channels.
-func Stream(
+// StreamCompletion starts a streaming completion and returns the raw chunk and error channels.
+func StreamCompletion(
 	ctx context.Context, spec models.Spec, apiKey, prompt string,
 ) (<-chan Chunk, <-chan error, error) {
 	req, err := newRequest(ctx, spec, apiKey, prompt)
@@ -196,6 +196,15 @@ func processSSELine(ctx context.Context, line string, chunks chan<- Chunk, errs 
 	}
 }
 
+func parseChunk(payload string) (Chunk, error) {
+	var chunk Chunk
+	if err := json.Unmarshal([]byte(payload), &chunk); err != nil {
+		preview := truncatePreview(payload, maxInvalidChunkPreviewLen)
+		return Chunk{}, fmt.Errorf("openrouter: invalid chunk %q: %w", preview, err)
+	}
+	return chunk, nil
+}
+
 func reportStreamReadError(ctx context.Context, readErr error, errs chan<- error) {
 	if ctx.Err() != nil {
 		errs <- ctx.Err()
@@ -233,13 +242,4 @@ func truncatePreview(s string, maxLen int) string {
 		return s
 	}
 	return string(runes[:maxLen]) + "… [truncated]"
-}
-
-func parseChunk(payload string) (Chunk, error) {
-	var chunk Chunk
-	if err := json.Unmarshal([]byte(payload), &chunk); err != nil {
-		preview := truncatePreview(payload, maxInvalidChunkPreviewLen)
-		return Chunk{}, fmt.Errorf("openrouter: invalid chunk %q: %w", preview, err)
-	}
-	return chunk, nil
 }

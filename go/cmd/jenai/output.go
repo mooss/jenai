@@ -36,7 +36,7 @@ func streamAndDisplay(
 
 	d := newDisplay(cfg, teeFile, thoughtlessFile)
 
-	chunks, errs, err := openrouter.Stream(ctx, spec, apiKey, promptStr)
+	chunks, errs, err := openrouter.StreamCompletion(ctx, spec, apiKey, promptStr)
 	noerr0(err)
 	for chunk := range chunks {
 		d.handleChunk(chunk)
