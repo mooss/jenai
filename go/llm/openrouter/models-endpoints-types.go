@@ -38,6 +38,7 @@ type ModelEndpoint struct {
 	LatencyLast30m                  *EndpointPercentiles               `json:"latency_last_30m" yaml:"latency_last_30m"`
 	ThroughputLast30m               *EndpointPercentiles               `json:"throughput_last_30m" yaml:"throughput_last_30m"`
 	PerfLast30mByWorkload           map[string]EndpointWorkloadMetrics `json:"perf_last_30m_by_workload,omitempty" yaml:"perf_last_30m_by_workload,omitempty"`
+	ServiceTier                     *string                            `json:"service_tier,omitempty" yaml:"service_tier,omitempty"`
 	SupportsImageReference          *bool                              `json:"supports_image_reference,omitempty" yaml:"supports_image_reference,omitempty"`
 	SupportsMultipleAudioReferences *bool                              `json:"supports_multiple_audio_references,omitempty" yaml:"supports_multiple_audio_references,omitempty"`
 	SupportsVoiceCloning            *bool                              `json:"supports_voice_cloning,omitempty" yaml:"supports_voice_cloning,omitempty"`
