@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/url"
 
+	"github.com/mooss/bagend/go/fun"
 	"github.com/mooss/jenai/go/config"
 	"github.com/mooss/jenai/go/llm/openrouter"
 	"github.com/mooss/jenai/go/models"
@@ -19,15 +20,19 @@ func runCapa(cfg *config.Jenai, args []string, source string) error {
 
 	ctx := context.Background()
 	apiKey := cfg.APIKeys[spec.Provider]
-	if source == "rawyaml" {
+
+	switch source {
+	case "rawyaml":
 		return rawyaml(ctx, spec, apiKey)
+	case "overview":
+		return overview(ctx, spec, apiKey)
 	}
 
-	endpointsResponse, err := openrouter.FetchCatalogRecord[openrouter.ListEndpointsResponse](
-		ctx, modelURL(spec, "models")+"/endpoints", apiKey,
+	endpointsResponse, err := fetchRecord[openrouter.ListEndpointsResponse](
+		ctx, modelURL(spec, "models")+"/endpoints", apiKey, "models endpoints",
 	)
 	if err != nil {
-		return fmt.Errorf("openrouter: fetch endpoint capabilities: %w", err)
+		return err
 	}
 
 	if source == "endpoints" {
@@ -73,22 +78,63 @@ func capaModelSpec(args []string) (models.Spec, error) {
 	return spec, nil
 }
 
+func fetchRecord[T any](ctx context.Context, recordURL, apiKey, description string) (T, error) {
+	record, err := openrouter.FetchCatalogRecord[T](ctx, recordURL, apiKey)
+	if err != nil {
+		return fun.Zero[T](), fmt.Errorf("openrouter: fetch %s capabilities: %w", description, err)
+	}
+	return record, nil
+}
+
 func rawyaml(ctx context.Context, spec models.Spec, apiKey string) error {
-	endpoints, err := openrouter.FetchCatalogRecord[any](
-		ctx, modelURL(spec, "models")+"/endpoints", apiKey,
+	endpoints, err := fetchRecord[any](
+		ctx, modelURL(spec, "models")+"/endpoints", apiKey, "models endpoints",
 	)
 	if err != nil {
-		return fmt.Errorf("openrouter: fetch endpoint capabilities: %w", err)
+		return err
 	}
 
-	model, err := openrouter.FetchCatalogRecord[any](ctx, modelURL(spec, "model"), apiKey)
+	model, err := fetchRecord[any](ctx, modelURL(spec, "model"), apiKey, "model")
 	if err != nil {
-		return fmt.Errorf("openrouter: fetch model capabilities: %w", err)
+		return err
 	}
 
 	prettyPrint(map[string]any{
 		"model":     model,
 		"endpoints": endpoints,
+	})
+	return nil
+}
+
+func overview(ctx context.Context, spec models.Spec, apiKey string) error {
+	modelResponse, err := fetchRecord[openrouter.GetModelResponse](
+		ctx, modelURL(spec, "model"), apiKey, "model",
+	)
+	if err != nil {
+		return err
+	}
+
+	model := modelResponse.Data
+	prettyPrint(struct {
+		CanonicalSlug    any `yaml:"canonical_slug"`
+		Name             any `yaml:"name"`
+		Pricing          any `yaml:"pricing"`
+		ContextLength    any `yaml:"context_length"`
+		InputModalities  any `yaml:"input_modalities"`
+		OutputModalities any `yaml:"output_modalities"`
+		Description      any `yaml:"description"`
+		AliasTarget      any `yaml:"alias_target"`
+		Reasoning        any `yaml:"reasoning"`
+	}{
+		CanonicalSlug:    model.CanonicalSlug,
+		Name:             model.Name,
+		Pricing:          model.Pricing,
+		ContextLength:    model.ContextLength,
+		InputModalities:  model.Architecture.InputModalities,
+		OutputModalities: model.Architecture.OutputModalities,
+		Description:      model.Description,
+		AliasTarget:      model.AliasTarget,
+		Reasoning:        model.Reasoning,
 	})
 	return nil
 }
