@@ -24,7 +24,7 @@ func runCapa(cfg *config.Jenai, args []string, source string) error {
 		return err
 	}
 
-	model, endpoints, err := decodeCapaCapabilities(capabilities, source == "endpoints")
+	model, endpoints, err := decodeCapabilities(capabilities, source == "endpoints")
 	if err != nil {
 		return err
 	}
@@ -45,8 +45,8 @@ func capaModelSpec(args []string, source string) (models.Spec, error) {
 	if len(args) != 1 {
 		return models.Spec{}, errors.New("usage: jenai capa MODEL")
 	}
-	if source != "" && source != "endpoints" {
-		return models.Spec{}, fmt.Errorf("unsupported source %q (expected endpoints)", source)
+	if source != "overview" && source != "endpoints" {
+		return models.Spec{}, fmt.Errorf("unsupported source %q (expected overview or endpoints)", source)
 	}
 
 	spec, err := modelSpec(&config.Jenai{Model: args[0]})
@@ -61,7 +61,7 @@ func capaModelSpec(args []string, source string) (models.Spec, error) {
 	return spec, nil
 }
 
-func decodeCapaCapabilities(
+func decodeCapabilities(
 	capabilities openrouter.Capabilities, endpointOnly bool,
 ) (any, any, error) {
 	modelResponse, err := codec.FromJSONOpt[
@@ -71,12 +71,22 @@ func decodeCapaCapabilities(
 		return nil, nil, err
 	}
 
+	if endpointOnly {
+		endpointsResponse, err := codec.FromJSONOpt[
+			openrouter.ListEndpointsResponse, codec.WarnUnknownFields,
+		](capabilities.Endpoints)
+		if err != nil {
+			return nil, nil, err
+		}
+		return modelResponse.Data, endpointsResponse.Data.Endpoints, nil
+	}
+
 	endpointsResponse, err := codec.FromJSON[any](capabilities.Endpoints)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	endpoints, err := filterEndpointCapabilities(endpointsResponse, endpointOnly)
+	endpoints, err := filterEndpointCapabilities(endpointsResponse, false)
 	if err != nil {
 		return nil, nil, err
 	}

@@ -93,7 +93,8 @@ func setupCommand(library prompts.Library) *cmd.Command {
 
 	capaFlags := flag.NewParser().WithPositionalArguments()
 	source := ""
-	capaFlags.String("source", &source, "Capability source: model or endpoints")
+	capaFlags.String("source", &source, "Capability source: overview or endpoints").
+		Default("overview")
 	capa := cmd.New("capa", "List a model's OpenRouter capabilities").
 		EmplaceFlags(capaFlags).Runner(func() error {
 		return runCapa(&cfg, capaFlags.Positional, source)
