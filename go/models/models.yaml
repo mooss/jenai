@@ -30,7 +30,7 @@ models:
         - max
         - high
         - low
-      default_effort: max
+      default_effort: high
   glm-flash:
     provider: openrouter
     author: z-ai
@@ -40,7 +40,7 @@ models:
         - max
         - high
         - low
-      default_effort: max
+      default_effort: high
   kimi-k3:
     provider: openrouter
     author: moonshotai
@@ -51,7 +51,7 @@ models:
         - high
         - low
         - none
-      default_effort: max
+      default_effort: low
   luna:
     provider: openrouter
     author: ~openai

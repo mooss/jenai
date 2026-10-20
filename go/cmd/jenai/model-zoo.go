@@ -15,12 +15,18 @@ import (
 	"github.com/mooss/jenai/go/utils"
 )
 
-func regenModelZoo(cfg *config.Jenai, args []string) error {
+func regenModelZoo(cfg *config.Jenai, args []string) (retErr error) {
+	defer func() {
+		if retErr != nil {
+			retErr = fmt.Errorf("model-zoo regen: %w", retErr)
+		}
+	}()
+
 	if len(args) != 1 {
 		return errors.New("usage: jenai model-zoo regen OUTPUT-FILE")
 	}
 
-	specs, err := models.ModelSpecs()
+	specs, err := modelSpecsForRegen(args[0])
 	if err != nil {
 		return err
 	}
@@ -41,12 +47,31 @@ func regenModelZoo(cfg *config.Jenai, args []string) error {
 
 	data, err := utils.ToYAML(output)
 	if err != nil {
-		return fmt.Errorf("model-zoo regen: marshal YAML: %w", err)
+		return fmt.Errorf("marshal YAML: %w", err)
 	}
 	if err := os.WriteFile(args[0], data, 0600); err != nil {
-		return fmt.Errorf("model-zoo regen: write %q: %w", args[0], err)
+		return fmt.Errorf("write %q: %w", args[0], err)
 	}
 	return nil
+}
+
+func modelSpecsForRegen(path string) (map[string]models.Spec, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		if !errors.Is(err, os.ErrNotExist) {
+			return nil, fmt.Errorf("read %q: %w", path, err)
+		}
+		return models.ModelSpecs()
+	}
+
+	specs, err := models.FromYAML(data)
+	if err == nil {
+		return specs, nil
+	}
+
+	warn := "could not load model specs from %q: %v; using embedded specs\n"
+	fmt.Fprintf(os.Stderr, warn, path, err)
+	return models.ModelSpecs()
 }
 
 type specUpdater struct {
@@ -56,7 +81,7 @@ type specUpdater struct {
 
 func (su specUpdater) update(spec models.Spec) (models.Spec, error) {
 	if spec.Provider != "openrouter" {
-		msg := "model-zoo regen: unsupported provider %q for model %q"
+		msg := "unsupported provider %q for model %q"
 		return models.Spec{}, fmt.Errorf(msg, spec.Provider, spec.ShortName)
 	}
 
@@ -64,7 +89,7 @@ func (su specUpdater) update(spec models.Spec) (models.Spec, error) {
 		su.ctx, modelURL(spec, "model"), su.apiKey, "model",
 	)
 	if err != nil {
-		return models.Spec{}, fmt.Errorf("model-zoo regen: fetch model %q: %w", spec.ShortName, err)
+		return models.Spec{}, fmt.Errorf("fetch model %q: %w", spec.ShortName, err)
 	}
 
 	return models.Spec{

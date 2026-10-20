@@ -92,7 +92,9 @@ func setupCommand(library prompts.Library) *cmd.Command {
 		})
 
 	regenFlags := flag.NewParser().WithPositionalArguments()
-	regen := cmd.New("regen", "Regenerate the model zoo YAML with current OpenRouter info").
+	regen := cmd.New("regen", "Overwrites the given model zoo YAML with current OpenRouter info").
+		Usage("OUTPUT-FILE").
+		Description(`OUTPUT-FILE will double as the model zoo source if valid.`).
 		EmplaceFlags(regenFlags).Runner(func() error {
 		return regenModelZoo(&cfg, regenFlags.Positional)
 	})
