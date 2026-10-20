@@ -9,7 +9,7 @@ import (
 )
 
 func fatal(err error) {
-	fmt.Println("Error:", err)
+	fmt.Fprintln(os.Stderr, "Error:", err)
 	os.Exit(1)
 }
 

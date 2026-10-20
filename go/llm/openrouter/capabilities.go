@@ -15,7 +15,7 @@ import (
 func FetchCatalogRecord[T any](
 	ctx context.Context, endpoint, apiKey string,
 ) (T, error) {
-	data, err := fetchCatalogRecord(ctx, endpoint, apiKey)
+	data, err := fetchCatalogRaw(ctx, endpoint, apiKey)
 	if err != nil {
 		var zero T
 		return zero, err
@@ -26,25 +26,10 @@ func FetchCatalogRecord[T any](
 
 const maxCatalogResponseBytes int64 = 10 << 20 // 10 MiB.
 
-func fetchCatalogRecord(ctx context.Context, endpoint, apiKey string) (json.RawMessage, error) {
-	headers := Headers{}
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
+func fetchCatalogRaw(ctx context.Context, endpoint, apiKey string) ([]byte, error) {
+	req, err := newCatalogRequest(ctx, endpoint, apiKey)
 	if err != nil {
 		return nil, err
-	}
-	req.Header.Set("Accept", "application/json")
-	if headers.HTTPReferer != "" {
-		req.Header.Set("HTTP-Referer", headers.HTTPReferer)
-	}
-	if headers.OpenRouterTitle != "" {
-		req.Header.Set("X-OpenRouter-Title", headers.OpenRouterTitle)
-	}
-	if headers.OpenRouterCategories != "" {
-		req.Header.Set("X-OpenRouter-Categories", headers.OpenRouterCategories)
-	}
-	if strings.TrimSpace(apiKey) != "" {
-		req.Header.Set("Authorization", "Bearer "+apiKey)
 	}
 
 	resp, err := http.DefaultClient.Do(req)
@@ -57,7 +42,39 @@ func fetchCatalogRecord(ctx context.Context, endpoint, apiKey string) (json.RawM
 		return nil, err
 	}
 
-	data, err := io.ReadAll(io.LimitReader(resp.Body, maxCatalogResponseBytes+1))
+	return readCatalogResponse(resp.Body)
+}
+
+func newCatalogRequest(ctx context.Context, endpoint, apiKey string) (*http.Request, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Set("Accept", "application/json")
+	setCatalogRequestHeaders(req, apiKey)
+
+	return req, nil
+}
+
+func setCatalogRequestHeaders(req *http.Request, apiKey string) {
+	headers := Headers{}
+	if headers.HTTPReferer != "" {
+		req.Header.Set("HTTP-Referer", headers.HTTPReferer)
+	}
+	if headers.OpenRouterTitle != "" {
+		req.Header.Set("X-OpenRouter-Title", headers.OpenRouterTitle)
+	}
+	if headers.OpenRouterCategories != "" {
+		req.Header.Set("X-OpenRouter-Categories", headers.OpenRouterCategories)
+	}
+	if strings.TrimSpace(apiKey) != "" {
+		req.Header.Set("Authorization", "Bearer "+apiKey)
+	}
+}
+
+func readCatalogResponse(body io.Reader) ([]byte, error) {
+	data, err := io.ReadAll(io.LimitReader(body, maxCatalogResponseBytes+1))
 	if err != nil {
 		return nil, fmt.Errorf("read catalog response: %w", err)
 	}
@@ -68,5 +85,5 @@ func fetchCatalogRecord(ctx context.Context, endpoint, apiKey string) (json.RawM
 		return nil, errors.New("invalid JSON catalog response")
 	}
 
-	return json.RawMessage(data), nil
+	return data, nil
 }

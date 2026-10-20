@@ -12,13 +12,17 @@ import (
 )
 
 func runCapa(cfg *config.Jenai, args []string, source string) error {
-	spec, err := capaModelSpec(args, source)
+	spec, err := capaModelSpec(args)
 	if err != nil {
 		return err
 	}
 
 	ctx := context.Background()
 	apiKey := cfg.APIKeys[spec.Provider]
+	if source == "rawyaml" {
+		return rawyaml(ctx, spec, apiKey)
+	}
+
 	endpointsResponse, err := openrouter.FetchCatalogRecord[openrouter.ListEndpointsResponse](
 		ctx, modelURL(spec, "models")+"/endpoints", apiKey,
 	)
@@ -52,7 +56,7 @@ func modelURL(spec models.Spec, resource string) string {
 		url.PathEscape(spec.Author) + "/" + url.PathEscape(spec.Model)
 }
 
-func capaModelSpec(args []string, source string) (models.Spec, error) {
+func capaModelSpec(args []string) (models.Spec, error) {
 	if len(args) != 1 {
 		return models.Spec{}, errors.New("usage: jenai capa MODEL")
 	}
@@ -67,4 +71,24 @@ func capaModelSpec(args []string, source string) (models.Spec, error) {
 	}
 
 	return spec, nil
+}
+
+func rawyaml(ctx context.Context, spec models.Spec, apiKey string) error {
+	endpoints, err := openrouter.FetchCatalogRecord[any](
+		ctx, modelURL(spec, "models")+"/endpoints", apiKey,
+	)
+	if err != nil {
+		return fmt.Errorf("openrouter: fetch endpoint capabilities: %w", err)
+	}
+
+	model, err := openrouter.FetchCatalogRecord[any](ctx, modelURL(spec, "model"), apiKey)
+	if err != nil {
+		return fmt.Errorf("openrouter: fetch model capabilities: %w", err)
+	}
+
+	prettyPrint(map[string]any{
+		"model":     model,
+		"endpoints": endpoints,
+	})
+	return nil
 }
