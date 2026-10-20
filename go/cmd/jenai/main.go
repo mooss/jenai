@@ -14,6 +14,7 @@ import (
 
 	"github.com/mooss/bagend/go/cmd"
 	"github.com/mooss/bagend/go/flag"
+	"github.com/mooss/bagend/go/fun"
 	"github.com/mooss/jenai/go/config"
 	"github.com/mooss/jenai/go/models"
 	"github.com/mooss/jenai/go/prompts"
@@ -143,7 +144,22 @@ func run(cfg *config.Jenai, mkprompt func() (config.Prompt, error)) error {
 		return errors.New("the prompt is empty")
 	}
 
-	spec := noerr(modelSpec(cfg))
+	spec, err := modelSpec(cfg)
+	if err != nil {
+		return err
+	}
+	if cfg.Reasoning != "" {
+		if !slices.Contains(fun.ZeroDeref(spec.Reasoning).SupportedEfforts, cfg.Reasoning) {
+			msg := "reasoning effort %q is not supported by model %q"
+			return fmt.Errorf(msg, cfg.Reasoning, spec.QualifiedName())
+		}
+
+		supportedEfforts := append([]string(nil), spec.Reasoning.SupportedEfforts...)
+		spec.Reasoning = &models.ReasoningSpec{
+			SupportedEfforts: supportedEfforts,
+			DefaultEffort:    cfg.Reasoning,
+		}
+	}
 	apiKey := noerr(cfg.APIKeyFor(spec.Provider))
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)

@@ -35,6 +35,7 @@ type Jenai struct {
 	Model              string            `yaml:"model,omitempty" json:"model,omitempty"`
 	Paste              bool              `yaml:"paste,omitempty" json:"paste,omitempty"`
 	Positional         []string          `yaml:"positional,omitempty" json:"positional,omitempty"`
+	Reasoning          string            `yaml:"reasoning,omitempty" json:"reasoning,omitempty"`
 	Thoughtless        bool              `yaml:"thoughtless,omitempty" json:"thoughtless,omitempty"`
 	ThoughtlessTeeFile string            `yaml:"thoughtlessteefile,omitempty" json:"thoughtlessteefile,omitempty"` //nolint:revive
 	TeeFile            string            `yaml:"teefile,omitempty" json:"teefile,omitempty"`
@@ -59,6 +60,7 @@ func (conf *Jenai) LLMRequestFlags() *flag.Parser {
 		"model", &conf.Model, "Model name (short name from `model-zoo` or provider:author/model)",
 	).Alias("m").Default("spark")
 	flags.Bool("paste", &conf.Paste, "Use clipboard content as prompt")
+	flags.String("reasoning", &conf.Reasoning, "Reasoning effort (must be supported by the model)")
 	flags.String("tee", &conf.TeeFile, "Output first answer to both stdout and FILE (overwritten)")
 	flags.Bool("thoughtless", &conf.Thoughtless, "Hide model reasoning").Alias("t")
 	flags.String("thoughtless-tee", &conf.ThoughtlessTeeFile,
