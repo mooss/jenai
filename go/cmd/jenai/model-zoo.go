@@ -38,7 +38,7 @@ func printModelDetails(args []string) error {
 	return nil
 }
 
-func regenModelZoo(cfg *config.Jenai, args []string) (retErr error) {
+func regenModelZoo(qry *config.Query, args []string) (retErr error) {
 	defer func() {
 		if retErr != nil {
 			retErr = fmt.Errorf("model-zoo regen: %w", retErr)
@@ -56,7 +56,7 @@ func regenModelZoo(cfg *config.Jenai, args []string) (retErr error) {
 
 	specup := specUpdater{
 		ctx:    context.Background(),
-		apiKey: cfg.APIKeys["openrouter"],
+		apiKey: qry.APIKeys["openrouter"],
 	}
 	updated, err := mae.MapE(specup.update, specs)
 	if err != nil {

@@ -59,12 +59,12 @@ func printAvailableModels() {
 // High-level utilities //
 
 func setupCommand(library prompts.Library) *cmd.Command {
-	cfg := config.Jenai{}
+	qry := config.Query{}
 	dir, err := config.Root()
 	if err != nil {
 		fatal(err)
 	}
-	noerr0(cfg.LoadFile(filepath.Join(dir, "config.yaml")))
+	noerr0(qry.LoadFile(filepath.Join(dir, "config.yaml")))
 
 	jenai := cmd.New(os.Args[0], "CLI prompt builder").Usage("COMMAND ...ARGS")
 	jenai.Runner(func() error {
@@ -72,18 +72,18 @@ func setupCommand(library prompts.Library) *cmd.Command {
 		return nil
 	})
 
-	promptFlags := cfg.LLMRequestFlags()
+	promptFlags := qry.BindFlags()
 	prompt := cmd.New("prompt", "Use a prompt from the prompt library").
 		Alias("p").EmplaceFlags(promptFlags).Runner(func() error {
-		cfg.Positional = promptFlags.Positional
-		return run(&cfg, func() (config.Prompt, error) { return cfg.BuildPrompt(library) })
+		qry.Positional = promptFlags.Positional
+		return run(&qry, func() (config.Prompt, error) { return qry.BuildPrompt(library) })
 	})
 
-	oneshotFlags := cfg.LLMRequestFlags()
+	oneshotFlags := qry.BindFlags()
 	oneshot := cmd.New("oneshot", "Create an ad-hoc prompt from positional arguments").
 		Alias("o").EmplaceFlags(oneshotFlags).Runner(func() error {
-		cfg.Positional = oneshotFlags.Positional
-		return run(&cfg, cfg.BuildOneshotPrompt)
+		qry.Positional = oneshotFlags.Positional
+		return run(&qry, qry.BuildOneshotPrompt)
 	})
 
 	modelZoo := cmd.New("model-zoo", "List the content of the model zoo").Alias("mz").
@@ -104,7 +104,7 @@ func setupCommand(library prompts.Library) *cmd.Command {
 		Usage("OUTPUT-FILE").
 		Description(`OUTPUT-FILE will double as the model zoo source if valid.`).
 		EmplaceFlags(regenFlags).Runner(func() error {
-		return regenModelZoo(&cfg, regenFlags.Positional)
+		return regenModelZoo(&qry, regenFlags.Positional)
 	})
 	modelZoo.RegisterSubs(details, regen)
 
@@ -116,7 +116,7 @@ func setupCommand(library prompts.Library) *cmd.Command {
 		Default("overview").Allowed("overview", "endpointless", "endpoints", "rawyaml")
 	capa := cmd.New("capa", "List a model's OpenRouter capabilities").
 		EmplaceFlags(capaFlags).Runner(func() error {
-		return runCapa(&cfg, capaFlags.Positional, source)
+		return runCapa(&qry, capaFlags.Positional, source)
 	})
 
 	promptLibrary := cmd.New("prompt-library", "List the content of the prompt library").
@@ -130,19 +130,19 @@ func setupCommand(library prompts.Library) *cmd.Command {
 	return jenai
 }
 
-func run(cfg *config.Jenai, mkprompt func() (config.Prompt, error)) error {
-	if cfg.DumpConfig {
-		spec := noerr(modelSpec(cfg))
+func run(qry *config.Query, mkprompt func() (config.Prompt, error)) error {
+	if qry.DumpConfig {
+		spec := noerr(modelSpec(qry))
 		prettyPrint(map[string]any{
 			"model":  spec,
-			"config": cfg,
+			"config": qry,
 		})
 		os.Exit(0)
 	}
 
 	prompt := noerr(mkprompt())
 
-	if cfg.DryRun {
+	if qry.DryRun {
 		fmt.Println(prompt)
 		os.Exit(0)
 	}
@@ -151,35 +151,35 @@ func run(cfg *config.Jenai, mkprompt func() (config.Prompt, error)) error {
 		return errors.New("the prompt is empty")
 	}
 
-	spec, err := modelSpec(cfg)
+	spec, err := modelSpec(qry)
 	if err != nil {
 		return err
 	}
-	if cfg.Reasoning != "" {
-		if !slices.Contains(fun.ZeroDeref(spec.Reasoning).SupportedEfforts, cfg.Reasoning) {
+	if qry.Reasoning != "" {
+		if !slices.Contains(fun.ZeroDeref(spec.Reasoning).SupportedEfforts, qry.Reasoning) {
 			msg := "reasoning effort %q is not supported by model %q"
-			return fmt.Errorf(msg, cfg.Reasoning, spec.QualifiedName())
+			return fmt.Errorf(msg, qry.Reasoning, spec.QualifiedName())
 		}
 
 		supportedEfforts := append([]string(nil), spec.Reasoning.SupportedEfforts...)
 		spec.Reasoning = &models.ReasoningSpec{
 			SupportedEfforts: supportedEfforts,
-			DefaultEffort:    cfg.Reasoning,
+			DefaultEffort:    qry.Reasoning,
 		}
 	}
-	apiKey := noerr(cfg.APIKeyFor(spec.Provider))
+	apiKey := noerr(qry.APIKeyFor(spec.Provider))
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	return streamAndDisplay(ctx, cfg, spec, apiKey, prompt, prompt.String())
+	return streamAndDisplay(ctx, qry, spec, apiKey, prompt, prompt.String())
 }
 
-func modelSpec(cfg *config.Jenai) (models.Spec, error) {
-	fromZoo := func() (models.Spec, error) { return models.Get(cfg.Model) }
+func modelSpec(qry *config.Query) (models.Spec, error) {
+	fromZoo := func() (models.Spec, error) { return models.Get(qry.Model) }
 
 	// Qualified name in provider:author/model formet.
-	provider, rest, found := strings.Cut(cfg.Model, ":")
+	provider, rest, found := strings.Cut(qry.Model, ":")
 	if !found {
 		return fromZoo()
 	}

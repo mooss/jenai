@@ -19,22 +19,22 @@ import (
 )
 
 func streamAndDisplay(
-	ctx context.Context, cfg *config.Jenai, spec models.Spec, apiKey string,
+	ctx context.Context, qry *config.Query, spec models.Spec, apiKey string,
 	prompt config.Prompt, promptStr string,
 ) (err error) {
-	teePath := canonicalTeePath(cfg.TeeFile)
-	thoughtlessPath := canonicalTeePath(cfg.ThoughtlessTeeFile)
+	teePath := canonicalTeePath(qry.TeeFile)
+	thoughtlessPath := canonicalTeePath(qry.ThoughtlessTeeFile)
 	if err := checkTeePaths(teePath, thoughtlessPath); err != nil {
 		return err
 	}
 
 	teeFile := utils.OpenTeeFile(teePath)
 	defer teeFile.Finish()
-	writeTeeHeader(teeFile, cfg, prompt, spec)
+	writeTeeHeader(teeFile, qry, prompt, spec)
 	thoughtlessFile := utils.OpenTeeFile(thoughtlessPath)
 	defer thoughtlessFile.Finish()
 
-	d := newDisplay(cfg, teeFile, thoughtlessFile)
+	d := newDisplay(qry, teeFile, thoughtlessFile)
 
 	chunks, errs, err := openrouter.StreamCompletion(ctx, spec, apiKey, promptStr)
 	noerr0(err)
@@ -55,7 +55,7 @@ func streamAndDisplay(
 // display //
 
 type display struct {
-	cfg             *config.Jenai
+	qry             *config.Query
 	output          *highlight.MarkdownStreamer
 	reasoningOutput *highlight.MarkdownStreamer
 	teeFile         *utils.TeeFile
@@ -65,10 +65,10 @@ type display struct {
 	endsWithNewline bool
 }
 
-func newDisplay(cfg *config.Jenai, teeFile, thoughtlessFile *utils.TeeFile) *display {
+func newDisplay(qry *config.Query, teeFile, thoughtlessFile *utils.TeeFile) *display {
 	color := terminalColorEnabled(os.Stdout)
 	return &display{
-		cfg:             cfg,
+		qry:             qry,
 		output:          highlight.NewMarkdownStreamer(os.Stdout, "pygments", color),
 		reasoningOutput: highlight.NewMarkdownStreamer(os.Stdout, "pygments", color),
 		teeFile:         teeFile,
@@ -82,7 +82,7 @@ func (d *display) onReasoning(s string) {
 		d.teeThink.open(func() { d.teeFile.Write("<think>\n") })
 		d.teeFile.Write(s)
 	}
-	if d.cfg.Thoughtless {
+	if d.qry.Thoughtless {
 		return
 	}
 	d.stdoutThink.open(func() {
@@ -99,7 +99,7 @@ func (d *display) onContent(s string) {
 	if d.thoughtlessFile.IsOpen() {
 		d.thoughtlessFile.Write(s)
 	}
-	if !d.cfg.Thoughtless {
+	if !d.qry.Thoughtless {
 		d.stdoutThink.close(func() {
 			noerr0(d.reasoningOutput.Flush())
 			fmt.Fprint(os.Stdout, "\n", d.reasoningOutput.ColorizeTag("</think>"), "\n\n")
@@ -180,13 +180,13 @@ func checkTeePaths(teePath, thoughtlessPath string) error {
 }
 
 func writeTeeHeader(
-	teeFile *utils.TeeFile, cfg *config.Jenai, prompt config.Prompt, spec models.Spec,
+	teeFile *utils.TeeFile, qry *config.Query, prompt config.Prompt, spec models.Spec,
 ) {
 	if !teeFile.IsOpen() {
 		return
 	}
 
-	header, err := teeHeader(cfg, prompt, spec)
+	header, err := teeHeader(qry, prompt, spec)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "can't build tee header (will proceed nonetheless): %s\n", err)
 		teeFile.Finish()
@@ -195,8 +195,8 @@ func writeTeeHeader(
 	}
 }
 
-func teeHeader(cfg *config.Jenai, prompt config.Prompt, spec models.Spec) (string, error) {
-	metadata, err := structToMap(cfg)
+func teeHeader(qry *config.Query, prompt config.Prompt, spec models.Spec) (string, error) {
+	metadata, err := structToMap(qry)
 	if err != nil {
 		return "", err
 	}

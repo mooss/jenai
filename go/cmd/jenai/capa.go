@@ -12,14 +12,14 @@ import (
 	"github.com/mooss/jenai/go/models"
 )
 
-func runCapa(cfg *config.Jenai, args []string, source string) error {
+func runCapa(qry *config.Query, args []string, source string) error {
 	spec, err := capaModelSpec(args)
 	if err != nil {
 		return err
 	}
 
 	ctx := context.Background()
-	apiKey := cfg.APIKeys[spec.Provider]
+	apiKey := qry.APIKeys[spec.Provider]
 
 	switch source {
 	case "rawyaml":
@@ -66,7 +66,7 @@ func capaModelSpec(args []string) (models.Spec, error) {
 		return models.Spec{}, errors.New("usage: jenai capa MODEL")
 	}
 
-	spec, err := modelSpec(&config.Jenai{Model: args[0]})
+	spec, err := modelSpec(&config.Query{Model: args[0]})
 	if err != nil {
 		return models.Spec{}, err
 	}
