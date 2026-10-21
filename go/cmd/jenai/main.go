@@ -91,7 +91,7 @@ func setupCommand(library prompts.Library) *cmd.Command {
 	force := false
 	editFlags := qry.BindFlags()
 	editFlags.StringSlice("write", &writeArg, "files to edit")
-	editFlags.Bool("force", &force, "Allow editing files with uncommitted changes")
+	editFlags.Bool("force", &force, "Allow editing files with unstaged changes")
 	edit := cmd.New("edit", "Edit files via seek/substitute").
 		Usage("[INSTRUCTIONS] --write FILE [FILE...]").
 		EmplaceFlags(editFlags).Runner(func() error {

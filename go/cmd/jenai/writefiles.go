@@ -122,9 +122,21 @@ func validateGitFile(file string) error {
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("check git status for %q: %w", file, err)
 	}
-	if status.Len() != 0 {
-		return fmt.Errorf("--write file %q has uncommitted changes (use --force to allow it)", file)
+	if hasUnstagedChanges(status.String()) {
+		return fmt.Errorf("--write file %q has unstaged changes (use --force to allow it)", file)
 	}
 
 	return nil
+}
+
+func hasUnstagedChanges(status string) bool {
+	for line := range strings.SplitSeq(status, "\n") {
+		if line == "" {
+			continue
+		}
+		if len(line) < 2 || line[1] != ' ' {
+			return true
+		}
+	}
+	return false
 }
