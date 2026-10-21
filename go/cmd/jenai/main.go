@@ -58,6 +58,7 @@ func printAvailableModels() {
 //////////////////////////
 // High-level utilities //
 
+//revive:disable:function-length
 func setupCommand(library prompts.Library) *cmd.Command {
 	qry := config.Query{}
 	dir, err := config.Root()
@@ -84,6 +85,18 @@ func setupCommand(library prompts.Library) *cmd.Command {
 		Alias("o").EmplaceFlags(oneshotFlags).Runner(func() error {
 		qry.Positional = oneshotFlags.Positional
 		return run(&qry, qry.BuildOneshotPrompt)
+	})
+
+	writeArg := []string{}
+	force := false
+	editFlags := qry.BindFlags()
+	editFlags.StringSlice("write", &writeArg, "files to edit")
+	editFlags.Bool("force", &force, "Allow editing files with uncommitted changes")
+	edit := cmd.New("edit", "Edit files via seek/substitute").
+		Usage("[INSTRUCTIONS] --write FILE [FILE...]").
+		EmplaceFlags(editFlags).Runner(func() error {
+		qry.Positional = editFlags.Positional
+		return runEdit(&qry, writeArg, force)
 	})
 
 	modelZoo := cmd.New("model-zoo", "List the content of the model zoo").Alias("mz").
@@ -125,12 +138,21 @@ func setupCommand(library prompts.Library) *cmd.Command {
 		return nil
 	})
 
-	jenai.RegisterSubs(oneshot, prompt, capa, modelZoo, promptLibrary)
+	jenai.RegisterSubs(oneshot, prompt, edit, capa, modelZoo, promptLibrary)
 
 	return jenai
 }
 
 func run(qry *config.Query, mkprompt func() (config.Prompt, error)) error {
+	return runWithHooks(qry, mkprompt, nil, nil)
+}
+
+func runWithHooks(
+	qry *config.Query,
+	mkprompt func() (config.Prompt, error),
+	prepare func() error,
+	onResponse func(string) error,
+) error {
 	if qry.DumpConfig {
 		spec := noerr(modelSpec(qry))
 		prettyPrint(map[string]any{
@@ -138,6 +160,12 @@ func run(qry *config.Query, mkprompt func() (config.Prompt, error)) error {
 			"config": qry,
 		})
 		os.Exit(0)
+	}
+
+	if prepare != nil {
+		if err := prepare(); err != nil {
+			return err
+		}
 	}
 
 	prompt, err := mkprompt()
@@ -162,7 +190,14 @@ func run(qry *config.Query, mkprompt func() (config.Prompt, error)) error {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	return streamAndDisplay(ctx, qry, spec, apiKey, prompt, prompt.String())
+	response, err := streamAndDisplay(ctx, qry, spec, apiKey, prompt, prompt.String())
+	if err != nil {
+		return err
+	}
+	if onResponse != nil {
+		return onResponse(response)
+	}
+	return nil
 }
 
 // modelAndAPIKey resolves the model spec and API key for the query's model, applying the reasoning

@@ -21,11 +21,11 @@ import (
 func streamAndDisplay(
 	ctx context.Context, qry *config.Query, spec models.Spec, apiKey string,
 	prompt config.Prompt, promptStr string,
-) (err error) {
+) (string, error) {
 	teePath := canonicalTeePath(qry.TeeFile)
 	thoughtlessPath := canonicalTeePath(qry.ThoughtlessTeeFile)
 	if err := checkTeePaths(teePath, thoughtlessPath); err != nil {
-		return err
+		return "", err
 	}
 
 	teeFile := utils.OpenTeeFile(teePath)
@@ -48,7 +48,7 @@ func streamAndDisplay(
 	}
 	d.finish()
 
-	return nil
+	return d.response.String(), nil
 }
 
 /////////////
@@ -63,6 +63,7 @@ type display struct {
 	stdoutThink     thinkGuard
 	teeThink        thinkGuard
 	endsWithNewline bool
+	response        strings.Builder
 }
 
 func newDisplay(qry *config.Query, teeFile, thoughtlessFile *utils.TeeFile) *display {
@@ -122,6 +123,7 @@ func (d *display) handleChunk(chunk openrouter.Chunk) {
 		d.onReasoning(c.Delta.Reasoning)
 	}
 	if c.Delta.Content != "" {
+		d.response.WriteString(c.Delta.Content)
 		d.onContent(c.Delta.Content)
 	}
 }

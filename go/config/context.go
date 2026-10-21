@@ -25,6 +25,7 @@ type Context struct {
 	Dirs        []string `yaml:"dirs,omitempty" json:"dirs,omitempty"`
 	Above       bool     `yaml:"above,omitempty" json:"above,omitempty"`
 	LineNumbers bool     `yaml:"linenumbers,omitempty" json:"linenumbers,omitempty"`
+	Title       string   `yaml:"-" json:"-"`
 }
 
 func (c *Context) Empty() bool { return len(c.Files) == 0 && len(c.Dirs) == 0 }
@@ -39,7 +40,12 @@ func (c *Context) Build() (string, []string, error) {
 
 	var buf bytes.Buffer
 	paths := []string{}
-	buf.WriteString("# Additional context (files)")
+	title := c.Title
+	if title == "" {
+		title = "Additional context (files)"
+	}
+	buf.WriteString("# ")
+	buf.WriteString(title)
 
 	for path, err := range c.allPaths {
 		if err != nil {
