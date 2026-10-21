@@ -16,6 +16,28 @@ import (
 	"github.com/mooss/jenai/go/utils"
 )
 
+func printModelDetails(args []string) error {
+	if len(args) > 1 {
+		return errors.New("usage: jenai model-zoo details [MODEL]")
+	}
+
+	if len(args) == 0 {
+		specs, err := models.ModelSpecs()
+		if err != nil {
+			return err
+		}
+		prettyPrint(models.Zoo{Models: specs})
+		return nil
+	}
+
+	spec, err := models.Get(args[0])
+	if err != nil {
+		return err
+	}
+	prettyPrint(spec)
+	return nil
+}
+
 func regenModelZoo(cfg *config.Jenai, args []string) (retErr error) {
 	defer func() {
 		if retErr != nil {

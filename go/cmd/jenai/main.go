@@ -92,6 +92,13 @@ func setupCommand(library prompts.Library) *cmd.Command {
 			return nil
 		})
 
+	detailsFlags := flag.NewParser().WithPositionalArguments()
+	details := cmd.New("details", "Print details for a model, or the whole model zoo").
+		Usage("[MODEL]").
+		EmplaceFlags(detailsFlags).Runner(func() error {
+		return printModelDetails(detailsFlags.Positional)
+	})
+
 	regenFlags := flag.NewParser().WithPositionalArguments()
 	regen := cmd.New("regen", "Overwrites the given model zoo YAML with current OpenRouter info").
 		Usage("OUTPUT-FILE").
@@ -99,7 +106,7 @@ func setupCommand(library prompts.Library) *cmd.Command {
 		EmplaceFlags(regenFlags).Runner(func() error {
 		return regenModelZoo(&cfg, regenFlags.Positional)
 	})
-	modelZoo.RegisterSubs(regen)
+	modelZoo.RegisterSubs(details, regen)
 
 	capaFlags := flag.NewParser().WithPositionalArguments()
 	source := ""
@@ -126,10 +133,10 @@ func setupCommand(library prompts.Library) *cmd.Command {
 func run(cfg *config.Jenai, mkprompt func() (config.Prompt, error)) error {
 	if cfg.DumpConfig {
 		spec := noerr(modelSpec(cfg))
-		fmt.Println(pretty(map[string]any{
+		prettyPrint(map[string]any{
 			"model":  spec,
 			"config": cfg,
-		}))
+		})
 		os.Exit(0)
 	}
 
