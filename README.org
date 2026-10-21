@@ -3,6 +3,55 @@
 CLI that builds a text prompt from args, stdin, clipboard, and files/dirs/URLs, then sends it to a model via OpenRouter.
 Also acts as a prompt manager of sorts, embedding a few useful prompts that can be quickly invoked by name.
 
+* Examples
+
+Review the staged changes with Sol:
+#+begin_src bash :eval never
+jenai p review_staged --model sol
+#+end_src
+
+Edit a file following pre-written guidelines:
+#+begin_src bash :eval never
+jenai edit Fix to fit the guidelines --file guidelines.md --write main.py
+#+end_src
+
+Query info from documentation in clipboard and hide reasoning:
+#+begin_src bash :eval never
+jenai o 'What exactly is a pipeline in this context?' --paste --thoughtless
+#+end_src
+
+Generate the description of this repo:
+#+begin_src bash :results raw :exports both :wrap example :eval never
+jenai o Create a short one line description of this project for GitHub --file go/cmd/jenai/main.go --thoughtless
+#+end_src
+
+#+RESULTS:
+#+begin_example
+CLI prompt builder for LLMs with prompt library, model zoo, and file-editing workflows
+#+end_example
+
+Visualize what would be sent by a given request, without sending it:
+#+begin_src bash :eval never
+jenai p review_code --dry-run | less
+#+end_src
+
+Display an overview of configured model shortcuts:
+#+begin_src bash :exports both
+jenai mz
+#+end_src
+
+#+RESULTS:
+| ds-flash  | (openrouter/~deepseek)  |
+| ds-pro    | (openrouter/~deepseek)  |
+| glm       | (openrouter/z-ai)       |
+| glm-flash | (openrouter/z-ai)       |
+| kimi-k3   | (openrouter/moonshotai) |
+| luna      | (openrouter/~openai)    |
+| minimax3  | (openrouter/minimax)    |
+| sol       | (openrouter/~openai)    |
+| spark     | (openrouter/meta)       |
+
+
 * Build and requirements
 
 Requires Go to be setup locally and install with =go install=:
@@ -10,7 +59,18 @@ Requires Go to be setup locally and install with =go install=:
 make install
 #+end_src
 
-Clipboard paste requires =xclip= (does not work with wayland).
+
+* Commands
+
+ - =oneshot|o= :: Create an ad-hoc prompt from positional arguments
+ - =prompt|p= :: Use a prompt from the prompt library
+ - =edit= :: Edit files
+ - =capa= :: List a model's OpenRouter capabilities
+ - =model-zoo|mz= :: List the content of the model zoo
+   - =details= :: Print details for a model, or the whole model zoo
+   - =regen= :: Overwrites the given model zoo YAML with current OpenRouter info
+ - =prompt-library|pl= :: List the content of the prompt library
+
 
 * Quick tour
 
@@ -19,15 +79,35 @@ Clipboard paste requires =xclip= (does not work with wayland).
 API keys are stored in =/.config/jenai/config.yaml=.
 First run explains how to set it up.
 
-** Context
-
-Add files/URLs (=--file=), directories (=--dir=, walked recursively).
-
-** Models
-
-Use short name from zoo (=glm-flash=) or qualified =provider:author/model= (=openrouter:z-ai/glm-5.3-flash=).
-
 ** Prompts
 
-Prompts are written as Go templates with some additional primitives like =git=, =join=, =strings=, =ins=, =per=, =sec1= and access to positional arguments.
+Prompts are Go templates written with primitives like =git=, =join=, =strings=, =ins=, =per=, =sec1= and access to positional args.
+=prompt-library|pl= lists the names of the prompts embedded into =jenai=.
 
+** Inputs
+
+Prompt text is positional args + piped stdin + clipboard (=--paste=).
+=oneshot|o [TEXT]= sends text as-is.
+=prompt|p NAME [ARGS]= expands a library template.
+
+** Arguments
+
+The completion commands (=oneshot=, =prompt= and =edit=) use common flags to configure context, model selection and output.
+
+*** Context
+
+ - =--file= :: adds files.
+ - =--dir= :: adds all files below the dirs.
+ - =--linum= :: includes line numbers.
+ - =--paste= :: adds content of clipboard.
+
+*** Model selection
+
+ - =-m|--model= :: selects short zoo name (=glm-flash=) or =provider:author/model= (=openrouter:z-ai/glm-5.3-flash=).
+ - =--reasoning= :: sets reasoning effort.
+
+*** Output
+
+ - =-n|--dry-run= :: prints built prompt without calling the LLM.
+ - =--tee= and =--thoughtless-tee|--tt= :: tees the output to the given file.
+ - =-t|--thoughtless= :: hides thinking.
