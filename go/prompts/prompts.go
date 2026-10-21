@@ -18,7 +18,11 @@ type Library struct {
 	Section1     map[string]string `yaml:"section1"`
 }
 
-var Embedded = utils.OnceErr(func() (Library, error) { return FromYAML(EmbeddedBytes) })
+var Embedded = utils.OnceErr(loader(EmbeddedBytes))
+
+func loader(data []byte) func() (Library, error) {
+	return func() (Library, error) { return FromYAML(data) }
+}
 
 func FromYAML(data []byte) (Library, error) {
 	res, err := utils.FromYAML[Library](data)

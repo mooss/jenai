@@ -140,7 +140,10 @@ func run(qry *config.Query, mkprompt func() (config.Prompt, error)) error {
 		os.Exit(0)
 	}
 
-	prompt := noerr(mkprompt())
+	prompt, err := mkprompt()
+	if err != nil {
+		return err
+	}
 
 	if qry.DryRun {
 		fmt.Println(prompt)
@@ -151,14 +154,28 @@ func run(qry *config.Query, mkprompt func() (config.Prompt, error)) error {
 		return errors.New("the prompt is empty")
 	}
 
-	spec, err := modelSpec(qry)
+	spec, apiKey, err := modelAndAPIKey(qry)
 	if err != nil {
 		return err
+	}
+
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
+	return streamAndDisplay(ctx, qry, spec, apiKey, prompt, prompt.String())
+}
+
+// modelAndAPIKey resolves the model spec and API key for the query's model, applying the reasoning
+// override when requested.
+func modelAndAPIKey(qry *config.Query) (models.Spec, string, error) {
+	spec, err := modelSpec(qry)
+	if err != nil {
+		return models.Spec{}, "", err
 	}
 	if qry.Reasoning != "" {
 		if !slices.Contains(fun.ZeroDeref(spec.Reasoning).SupportedEfforts, qry.Reasoning) {
 			msg := "reasoning effort %q is not supported by model %q"
-			return fmt.Errorf(msg, qry.Reasoning, spec.QualifiedName())
+			return models.Spec{}, "", fmt.Errorf(msg, qry.Reasoning, spec.QualifiedName())
 		}
 
 		supportedEfforts := append([]string(nil), spec.Reasoning.SupportedEfforts...)
@@ -168,11 +185,7 @@ func run(qry *config.Query, mkprompt func() (config.Prompt, error)) error {
 		}
 	}
 	apiKey := noerr(qry.APIKeyFor(spec.Provider))
-
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-	defer stop()
-
-	return streamAndDisplay(ctx, qry, spec, apiKey, prompt, prompt.String())
+	return spec, apiKey, nil
 }
 
 func modelSpec(qry *config.Query) (models.Spec, error) {
