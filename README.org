@@ -64,11 +64,11 @@ make install
 
  - =oneshot|o= :: Create an ad-hoc prompt from positional arguments
  - =prompt|p= :: Use a prompt from the prompt library
- - =edit= :: Edit files
- - =capa= :: List a model's OpenRouter capabilities
- - =model-zoo|mz= :: List the content of the model zoo
+ - =edit= :: Edit files according to instructions
+ - =model-zoo|mz= :: Show configured model shortcuts
    - =details= :: Print details for a model, or the whole model zoo
    - =regen= :: Overwrites the given model zoo YAML with current OpenRouter info
+ - =capa= :: List a model's OpenRouter capabilities
  - =prompt-library|pl= :: List the content of the prompt library
 
 

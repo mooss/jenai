@@ -35,10 +35,10 @@ func printEmbeddedPromptNames(promptNames map[string]string) {
 	}
 }
 
-func printAvailableModels() {
+func printAvailableModels() error {
 	specs, err := models.ModelSpecs()
 	if err != nil {
-		fatal(err)
+		return err
 	}
 
 	longest := 0
@@ -53,6 +53,8 @@ func printAvailableModels() {
 		spec := specs[short]
 		fmt.Printf(format, spec.ShortName, spec.Provider, spec.Author)
 	}
+
+	return nil
 }
 
 //////////////////////////
@@ -67,78 +69,107 @@ func setupCommand(library prompts.Library) *cmd.Command {
 	}
 	noerr0(qry.LoadFile(filepath.Join(dir, "config.yaml")))
 
-	jenai := cmd.New(os.Args[0], "CLI prompt builder").Usage("COMMAND ...ARGS")
-	jenai.Runner(func() error {
+	jenai := &cmd.Command{
+		Name:    os.Args[0],
+		Docline: "CLI prompt builder",
+		Usage:   "COMMAND ARGS...",
+	}
+	jenai.Runner = func() error {
 		fmt.Print(jenai.Help())
 		return nil
-	})
+	}
 
-	promptFlags := qry.BindFlags()
-	prompt := cmd.New("prompt", "Use a prompt from the prompt library").
-		Alias("p").EmplaceFlags(promptFlags).Runner(func() error {
-		qry.Positional = promptFlags.Positional
-		return run(&qry, func() (config.Prompt, error) { return qry.BuildPrompt(library) })
-	})
-
-	oneshotFlags := qry.BindFlags()
-	oneshot := cmd.New("oneshot", "Create an ad-hoc prompt from positional arguments").
-		Alias("o").EmplaceFlags(oneshotFlags).Runner(func() error {
-		qry.Positional = oneshotFlags.Positional
+	oneshot := &cmd.Command{
+		Name:    "oneshot",
+		Docline: "Create an ad-hoc prompt from arguments, clipboard or stdin",
+		Usage:   "[INSTRUCTIONS...]",
+		Aliases: []string{"o"},
+		Flags:   qry.BindFlags(),
+	}
+	oneshot.Runner = func() error {
+		qry.Positional = oneshot.Flags.Positional
 		return run(&qry, qry.BuildOneshotPrompt)
-	})
+	}
+
+	prompt := &cmd.Command{
+		Name:    "prompt",
+		Docline: "Use a prompt from the prompt library",
+		Usage:   "NAME [ARGS...]",
+		Aliases: []string{"p"},
+		Flags:   qry.BindFlags(),
+	}
+	prompt.Runner = func() error {
+		qry.Positional = prompt.Flags.Positional
+		return run(&qry, func() (config.Prompt, error) { return qry.BuildPrompt(library) })
+	}
 
 	writeArg := []string{}
 	force := false
-	editFlags := qry.BindFlags()
-	editFlags.StringSlice("write", &writeArg, "files to edit")
-	editFlags.Bool("force", &force, "Allow editing files with unstaged changes")
-	edit := cmd.New("edit", "Edit files via seek/substitute").
-		Usage("[INSTRUCTIONS] --write FILE [FILE...]").
-		EmplaceFlags(editFlags).Runner(func() error {
-		qry.Positional = editFlags.Positional
+	edit := &cmd.Command{
+		Name:    "edit",
+		Docline: "Edit files according to instructions",
+		Usage:   "[INSTRUCTIONS...] --write FILE...",
+		Aliases: []string{"ed"},
+		Flags:   qry.BindFlags(),
+	}
+	edit.Flags.StringSlice("write", &writeArg, "Files to edit")
+	edit.Flags.Bool("force", &force, "Allow editing files with unstaged changes")
+	edit.Runner = func() error {
+		qry.Positional = edit.Flags.Positional
 		return runEdit(&qry, writeArg, force)
-	})
+	}
 
-	modelZoo := cmd.New("model-zoo", "List the content of the model zoo").Alias("mz").
-		Runner(func() error {
-			printAvailableModels()
-			return nil
-		})
+	modelZoo := &cmd.Command{
+		Name:    "model-zoo",
+		Docline: "Show configured model shortcuts",
+		Aliases: []string{"mz"},
+		Runner:  printAvailableModels,
+	}
 
-	detailsFlags := flag.NewParser().WithPositionalArguments()
-	details := cmd.New("details", "Print details for a model, or the whole model zoo").
-		Usage("[MODEL]").
-		EmplaceFlags(detailsFlags).Runner(func() error {
-		return printModelDetails(detailsFlags.Positional)
-	})
+	details := &cmd.Command{
+		Name:    "details",
+		Docline: "Print details for a model, or the whole model zoo",
+		Usage:   "[MODEL]",
+		Flags:   flag.NewParser().WithPositionalArguments(),
+	}
+	details.Runner = func() error { return printModelDetails(details.Flags.Positional) }
 
-	regenFlags := flag.NewParser().WithPositionalArguments()
-	regen := cmd.New("regen", "Overwrites the given model zoo YAML with current OpenRouter info").
-		Usage("OUTPUT-FILE").
-		Description(`OUTPUT-FILE will double as the model zoo source if valid.`).
-		EmplaceFlags(regenFlags).Runner(func() error {
-		return regenModelZoo(&qry, regenFlags.Positional)
-	})
+	regen := &cmd.Command{
+		Name:        "regen",
+		Docline:     "Overwrites the given model zoo YAML with current OpenRouter info",
+		Usage:       "OUTPUT-FILE",
+		Description: `OUTPUT-FILE will double as the model zoo source if valid.`,
+		Flags:       flag.NewParser().WithPositionalArguments(),
+	}
+	regen.Runner = func() error {
+		return regenModelZoo(&qry, regen.Flags.Positional)
+	}
+
 	modelZoo.RegisterSubs(details, regen)
 
-	capaFlags := flag.NewParser().WithPositionalArguments()
 	source := ""
-	capaFlags.String(
+	capa := &cmd.Command{
+		Name:    "capa",
+		Docline: "List a model's OpenRouter capabilities",
+		Usage:   "MODEL",
+		Flags:   flag.NewParser().WithPositionalArguments(),
+	}
+	capa.Flags.String(
 		"source", &source, "Capability source: overview, endpointless, endpoints, or rawyaml",
-	).
-		Default("overview").Allowed("overview", "endpointless", "endpoints", "rawyaml")
-	capa := cmd.New("capa", "List a model's OpenRouter capabilities").
-		EmplaceFlags(capaFlags).Runner(func() error {
-		return runCapa(&qry, capaFlags.Positional, source)
-	})
+	).Default("overview").Allowed("overview", "endpointless", "endpoints", "rawyaml")
+	capa.Runner = func() error { return runCapa(&qry, capa.Flags.Positional, source) }
 
-	promptLibrary := cmd.New("prompt-library", "List the content of the prompt library").
-		Alias("pl").Runner(func() error {
-		printEmbeddedPromptNames(library.Prompts)
-		return nil
-	})
+	promptLibrary := &cmd.Command{
+		Name:    "prompt-library",
+		Docline: "List the content of the prompt library",
+		Aliases: []string{"pl"},
+		Runner: func() error {
+			printEmbeddedPromptNames(library.Prompts)
+			return nil
+		},
+	}
 
-	jenai.RegisterSubs(oneshot, prompt, edit, capa, modelZoo, promptLibrary)
+	jenai.RegisterSubs(oneshot, prompt, edit, modelZoo, capa, promptLibrary)
 
 	return jenai
 }
