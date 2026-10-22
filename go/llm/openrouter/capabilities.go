@@ -24,7 +24,7 @@ func FetchCatalogRecord[T any](
 	return codec.FromJSONOpt[T, codec.WarnUnknownFields](data)
 }
 
-const maxCatalogResponseBytes int64 = 10 << 20 // 10 MiB.
+const maxResponseBytes int64 = 10 << 20 // 10 MiB.
 
 func fetchCatalogRaw(ctx context.Context, endpoint, apiKey string) ([]byte, error) {
 	req, err := newCatalogRequest(ctx, endpoint, apiKey)
@@ -74,12 +74,12 @@ func setCatalogRequestHeaders(req *http.Request, apiKey string) {
 }
 
 func readCatalogResponse(body io.Reader) ([]byte, error) {
-	data, err := io.ReadAll(io.LimitReader(body, maxCatalogResponseBytes+1))
+	data, err := io.ReadAll(io.LimitReader(body, maxResponseBytes+1))
 	if err != nil {
 		return nil, fmt.Errorf("read catalog response: %w", err)
 	}
-	if int64(len(data)) > maxCatalogResponseBytes {
-		return nil, fmt.Errorf("catalog response exceeds %d bytes", maxCatalogResponseBytes)
+	if int64(len(data)) > maxResponseBytes {
+		return nil, fmt.Errorf("catalog response exceeds %d bytes", maxResponseBytes)
 	}
 	if !json.Valid(data) {
 		return nil, errors.New("invalid JSON catalog response")

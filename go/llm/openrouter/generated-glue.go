@@ -1,4 +1,7 @@
+// This file contains code that ties together and complete the types generated from the OpenAPI
+// specs.
 //revive:disable:line-length-limit
+
 package openrouter
 
 import (
@@ -6,13 +9,11 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+
+	"github.com/mooss/jenai/go/llm/openrouter/generated"
 )
 
-// ModelID contains the required parameters to identify a model.
-type ModelID struct {
-	Author string `json:"author" yaml:"author"`
-	Slug   string `json:"slug" yaml:"slug"`
-}
+type GetModelResponse = generated.GetModelResponseX200
 
 // Headers contains the optional app-identification headers for an operation.
 type Headers struct {
@@ -39,7 +40,7 @@ func checkStatus(resp *http.Response) error {
 		return nil
 	}
 
-	data, err := io.ReadAll(io.LimitReader(resp.Body, maxCatalogResponseBytes+1))
+	data, err := io.ReadAll(io.LimitReader(resp.Body, maxResponseBytes+1))
 	if err != nil {
 		return fmt.Errorf("read catalog error response: %w", err)
 	}

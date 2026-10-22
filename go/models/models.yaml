@@ -69,6 +69,15 @@ models:
     provider: openrouter
     author: minimax
     model: minimax-m3
+    reasoning:
+      supported_efforts:
+        - max
+        - xhigh
+        - high
+        - medium
+        - low
+        - minimal
+        - none
   sol:
     provider: openrouter
     author: ~openai

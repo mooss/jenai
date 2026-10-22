@@ -332,6 +332,7 @@ def render(ir: IR, package: str, argv: list[str]) -> str:
     output = [
         "// Generated with arguments: "
         + json.dumps(argv, ensure_ascii=False),
+        "//revive:disable:var-naming,line-length-limit",
         f"package {package}",
     ]
 
