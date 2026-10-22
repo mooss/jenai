@@ -241,6 +241,7 @@ instructions:
     - Obvious optimizations with negligible impact
     - Personal opinions about approaches
     - Generic comments like "consider adding comments"
+    - Speculation about impact out-of-context like "renaming this method breaks source compatibility for users of the package"
 
     Format your review as:
     ```

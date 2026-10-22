@@ -13,7 +13,7 @@ Do not include anything but those seek/substitute blocks.
 Use only file paths from the EDITABLE FILES section.
 
 FILE-PATH
-` + "```" + `
+` + "```language" + `
 %s
 SEEK CONTENT
 %s
