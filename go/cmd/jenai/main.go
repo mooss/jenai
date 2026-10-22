@@ -87,7 +87,6 @@ func setupCommand(library prompts.Library) *cmd.Command {
 		Flags:   qry.BindFlags(),
 	}
 	oneshot.Runner = func() error {
-		qry.Positional = oneshot.Flags.Positional
 		return run(&qry, qry.BuildOneshotPrompt)
 	}
 
@@ -99,7 +98,6 @@ func setupCommand(library prompts.Library) *cmd.Command {
 		Flags:   qry.BindFlags(),
 	}
 	prompt.Runner = func() error {
-		qry.Positional = prompt.Flags.Positional
 		return run(&qry, func() (config.Prompt, error) { return qry.BuildPrompt(library) })
 	}
 
@@ -115,7 +113,6 @@ func setupCommand(library prompts.Library) *cmd.Command {
 	edit.Flags.StringSlice("write", &writeArg, "Files to edit")
 	edit.Flags.Bool("force", &force, "Allow editing files with unstaged changes")
 	edit.Runner = func() error {
-		qry.Positional = edit.Flags.Positional
 		return runEdit(&qry, writeArg, force)
 	}
 
@@ -126,23 +123,24 @@ func setupCommand(library prompts.Library) *cmd.Command {
 		Runner:  printAvailableModels,
 	}
 
+	var posargs []string
 	details := &cmd.Command{
 		Name:    "details",
 		Docline: "Print details for a model, or the whole model zoo",
 		Usage:   "[MODEL]",
-		Flags:   flag.NewParser().WithPositionalArguments(),
+		Flags:   flag.NewParser().Positional(&posargs),
 	}
-	details.Runner = func() error { return printModelDetails(details.Flags.Positional) }
+	details.Runner = func() error { return printModelDetails(posargs) }
 
 	regen := &cmd.Command{
 		Name:        "regen",
 		Docline:     "Overwrites the given model zoo YAML with current OpenRouter info",
 		Usage:       "OUTPUT-FILE",
 		Description: `OUTPUT-FILE will double as the model zoo source if valid.`,
-		Flags:       flag.NewParser().WithPositionalArguments(),
+		Flags:       flag.NewParser().Positional(&posargs),
 	}
 	regen.Runner = func() error {
-		return regenModelZoo(&qry, regen.Flags.Positional)
+		return regenModelZoo(&qry, posargs)
 	}
 
 	modelZoo.RegisterSubs(details, regen)
@@ -152,12 +150,12 @@ func setupCommand(library prompts.Library) *cmd.Command {
 		Name:    "capa",
 		Docline: "List a model's OpenRouter capabilities",
 		Usage:   "MODEL",
-		Flags:   flag.NewParser().WithPositionalArguments(),
+		Flags:   flag.NewParser().Positional(&posargs),
 	}
 	capa.Flags.String(
 		"source", &source, "Capability source: overview, endpointless, endpoints, or rawyaml",
 	).Default("overview").Allowed("overview", "endpointless", "endpoints", "rawyaml")
-	capa.Runner = func() error { return runCapa(&qry, capa.Flags.Positional, source) }
+	capa.Runner = func() error { return runCapa(&qry, posargs, source) }
 
 	promptLibrary := &cmd.Command{
 		Name:    "prompt-library",

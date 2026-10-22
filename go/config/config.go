@@ -46,8 +46,9 @@ type Query struct {
 // Construction and validation //
 
 func (qry *Query) BindFlags() *flag.Parser {
-	flags := flag.NewParser().WithPositionalArguments()
+	flags := flag.NewParser()
 
+	flags.Positional(&qry.Positional)
 	flags.Bool("context-above", &qry.Context.Above,
 		"Put context files and dir above instructions")
 	flags.StringSlice("dir", &qry.Context.Dirs, "Include all files in directory as context")
@@ -69,16 +70,6 @@ func (qry *Query) BindFlags() *flag.Parser {
 	flags.Bool("dump-config", &qry.DumpConfig, "dump the config to stdout and exit")
 
 	return flags
-}
-
-// ParseCLI fills the fields from CLI arguments.
-func (qry *Query) ParseCLI(parser *flag.Parser, args []string) error {
-	if err := parser.Parse(args); err != nil {
-		return err
-	}
-
-	qry.Positional = parser.Positional
-	return nil
 }
 
 func (qry *Query) LoadFile(path string) error {
