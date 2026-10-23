@@ -11,15 +11,15 @@ import (
 )
 
 var (
-	seekMarker       = "[[[[[[[ SEEK"
-	separatorMarker  = "|||||||"
-	substituteMarker = "]]]]]]] SUBSTITUTE"
+	searchMarker    = "<<<<<<< SEARCH"
+	separatorMarker = "======="
+	replaceMarker   = ">>>>>>> REPLACE"
 )
 
 type substitution struct {
-	File       string
-	Seek       string
-	Substitute string
+	File    string
+	Search  string
+	Replace string
 }
 
 /////////////
@@ -45,7 +45,7 @@ func parseSubstitutions(response string) ([]substitution, error) {
 		// File path.
 		file := lines[i]
 		if file == "" || strings.TrimSpace(file) != file ||
-			file == seekMarker || file == separatorMarker || file == substituteMarker {
+			file == searchMarker || file == separatorMarker || file == replaceMarker {
 			return nil, fmt.Errorf("invalid substitution file path on line %d", i+1)
 		}
 		i++
@@ -55,22 +55,22 @@ func parseSubstitutions(response string) ([]substitution, error) {
 			return nil, fmt.Errorf("expected opening code fence after file path %q", file)
 		}
 		i++
-		if i >= len(lines) || lines[i] != seekMarker {
-			return nil, fmt.Errorf("expected seek marker for %q", file)
+		if i >= len(lines) || lines[i] != searchMarker {
+			return nil, fmt.Errorf("expected search marker for %q", file)
 		}
 		i++
 
 		// Seek separator.
-		seekLines, next, ok := collectUntil(lines, i, separatorMarker)
+		searchLines, next, ok := collectUntil(lines, i, separatorMarker)
 		if !ok {
 			return nil, fmt.Errorf("missing separator marker for %q", file)
 		}
 		i = next + 1
 
-		// Seek end of substitute section.
-		substituteLines, next, ok := collectUntil(lines, i, substituteMarker)
+		// Seek end of replacement section.
+		replaceLines, next, ok := collectUntil(lines, i, replaceMarker)
 		if !ok {
-			return nil, fmt.Errorf("missing substitute marker for %q", file)
+			return nil, fmt.Errorf("missing replacement marker for %q", file)
 		}
 		i = next + 1
 
@@ -81,14 +81,14 @@ func parseSubstitutions(response string) ([]substitution, error) {
 		i++
 
 		result = append(result, substitution{
-			File:       file,
-			Seek:       joinBlockLines(seekLines),
-			Substitute: joinBlockLines(substituteLines),
+			File:    file,
+			Search:  joinBlockLines(searchLines),
+			Replace: joinBlockLines(replaceLines),
 		})
 	}
 
 	if len(result) == 0 {
-		return nil, errors.New("response contains no complete seek/substitute blocks")
+		return nil, errors.New("response contains no complete search/replace blocks")
 	}
 
 	return result, nil
@@ -143,19 +143,19 @@ func validateSubstitutions(
 			if err != nil {
 				return nil, fmt.Errorf("when reading editable file %q: %w", resolved, err)
 			}
-			// Files must end in newlines otherwise seek/substitute could break on the last line.
+			// Files must end in newlines otherwise search/replace could break on the last line.
 			content = string(lie.EnsureFinal(data, '\n'))
 		}
 
-		if sub.Seek == "" {
-			return nil, fmt.Errorf("seek content for %q must not be empty", sub.File)
+		if sub.Search == "" {
+			return nil, fmt.Errorf("search content for %q must not be empty", sub.File)
 		}
-		if count := strings.Count(content, sub.Seek); count != 1 {
-			msg := "seek content for %q occurs %d times; expected exactly once"
+		if count := strings.Count(content, sub.Search); count != 1 {
+			msg := "search content for %q occurs %d times; expected exactly once"
 			return nil, fmt.Errorf(msg, sub.File, count)
 		}
 
-		buffers[resolved] = strings.Replace(content, sub.Seek, sub.Substitute, 1)
+		buffers[resolved] = strings.Replace(content, sub.Search, sub.Replace, 1)
 	}
 
 	return buffers, nil
