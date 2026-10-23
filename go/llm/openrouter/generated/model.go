@@ -1,4 +1,4 @@
-// Generated with arguments: ["scripts/vibe/oapi2go.py", "--package", "generated", "--keep", "200"]
+// Generated with arguments: ["../scripts/vibe/oapi2go.py", "--package", "generated", "--keep", "200"]
 //
 //revive:disable:var-naming,line-length-limit
 package generated
