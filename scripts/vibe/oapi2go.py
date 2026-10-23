@@ -28,6 +28,11 @@ class IRField:
     description: str
     optional: bool
     type: IRType
+    example: Any = None
+    enum: list[Any] | None = None
+    format: str | None = None
+    min_items: int | None = None
+    allow_unknown_values: bool = False
 
 
 @dataclass
@@ -169,12 +174,49 @@ def compile_ir(document: dict[str, Any], keep: re.Pattern[str] | None = None) ->
                 field_schema = field_schema or {}
                 child_hint = struct.name + camel_name(field_name)
                 child_type = compile_schema(field_schema, child_hint)
+                items_schema = field_schema.get("items")
+                if not isinstance(items_schema, dict):
+                    items_schema = {}
+                enum_values = field_schema.get("enum")
+                if enum_values is None:
+                    enum_values = items_schema.get("enum")
+                if enum_values is not None and not isinstance(enum_values, list):
+                    enum_values = None
+                if "example" in field_schema:
+                    example_value = field_schema.get("example")
+                elif "example" in items_schema:
+                    example_value = items_schema.get("example")
+                else:
+                    example_value = None
+                format_value = field_schema.get("format") or items_schema.get("format")
+                if not isinstance(format_value, str):
+                    format_value = None
+                min_items_value = field_schema.get("minItems")
+                if not isinstance(min_items_value, int) or isinstance(
+                    min_items_value, bool
+                ):
+                    min_items_value = None
+                allow_unknown = False
+                for key in (
+                    "allowUnknownValues",
+                    "allow_unknown_values",
+                    "x-allowUnknownValues",
+                    "x-allow-unknown-values",
+                ):
+                    if field_schema.get(key) is True or items_schema.get(key) is True:
+                        allow_unknown = True
+                        break
                 struct.fields.append(
                     IRField(
                         name=field_name,
                         description=descriptions(field_schema),
                         optional=field_name not in required,
                         type=child_type,
+                        example=example_value,
+                        enum=list(enum_values) if enum_values is not None else None,
+                        format=format_value,
+                        min_items=min_items_value,
+                        allow_unknown_values=allow_unknown,
                     )
                 )
             return IRType("object", nullable, name=struct.name)
@@ -233,13 +275,7 @@ def compile_ir(document: dict[str, Any], keep: re.Pattern[str] | None = None) ->
             alias_sources[alias_name] = name
             ir.aliases.append(IRAlias(alias_name, alias_doc, result))
             return
-        # Works but generate duplicates.
-        # if result.kind == "object" and fallback_doc:
-        #     struct = next(s for s in ir.structs if s.name == result.name)
-        #     if fallback_doc:
-        #         struct.description = "\n".join(
-        #             part for part in (struct.description, fallback_doc) if part
-        #         )
+
         if result.kind == "object" and fallback_doc:
             struct = next(s for s in ir.structs if s.name == result.name)
 
@@ -366,6 +402,30 @@ def render(ir: IR, package: str, argv: list[str]) -> str:
         for field_ir in struct.fields:
             if field_ir.description:
                 output.extend(comment_lines(field_ir.description, "\t"))
+            if field_ir.enum:
+                output.extend(
+                    comment_lines(
+                        "Allowed values: "
+                        + ", ".join(
+                            json.dumps(value, ensure_ascii=False)
+                            for value in field_ir.enum
+                        ),
+                        "\t",
+                    )
+                )
+            if field_ir.example is not None:
+                output.extend(
+                    comment_lines(
+                        f"Example: {json.dumps(field_ir.example, ensure_ascii=False)}",
+                        "\t",
+                    )
+                )
+            if field_ir.format:
+                output.extend(comment_lines(f"format: {field_ir.format}", "\t"))
+            if field_ir.min_items is not None:
+                output.extend(comment_lines(f"minItems: {field_ir.min_items}", "\t"))
+            if field_ir.allow_unknown_values:
+                output.extend(comment_lines("Unknown values are allowed.", "\t"))
             field_type = go_type(field_ir.type)
             if field_ir.optional and not field_ir.type.nullable:
                 field_type = "*" + field_type
