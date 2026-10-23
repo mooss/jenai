@@ -12,10 +12,9 @@ import (
 var EmbeddedBytes []byte
 
 type Library struct {
-	Prompts      map[string]string `yaml:"prompts"`
-	Personas     map[string]string `yaml:"personas"`
-	Instructions map[string]string `yaml:"instructions"`
-	Section2     map[string]string `yaml:"section2"`
+	Prompts  map[string]string `yaml:"prompts"`
+	Inserts  map[string]string `yaml:"inserts"`
+	Section2 map[string]string `yaml:"section2"`
 }
 
 var Embedded = utils.OnceErr(loader(EmbeddedBytes))

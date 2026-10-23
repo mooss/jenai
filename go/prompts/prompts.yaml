@@ -6,48 +6,73 @@
 
 prompts:
   commit_message: |-
-    {{ per "jaded_dev" }}
+    ## Persona
 
-    {{ ins "commit_msg" }}
+    {{ insert "jaded_dev" }}
+
+    ## Instructions
+
+    {{ insert "commit_msg" }}
 
     {{ sec2 "git_diff" "--staged" }}
 
   project_graph: |-
-    {{ ins "idea_graph" }}
+    ## Instructions
+
+    {{ insert "idea_graph" }}
 
     {{ consume_args | join " " }}
 
   review_staged: |-
-    {{ per "jaded_dev" }}
+    ## Persona
 
-    {{ ins "review_diff" }}
+    {{ insert "jaded_dev" }}
+
+    ## Instructions
+
+    {{ insert "review_diff" }}
 
     {{ sec2 "git_diff" "--staged" }}
 
   review_previous_commit: |-
-    {{ per "jaded_dev" }}
+    ## Persona
 
-    {{ ins "review_diff" }}
+    {{ insert "jaded_dev" }}
+
+    ## Instructions
+
+    {{ insert "review_diff" }}
 
     {{ sec2 "git_diff" "HEAD^" "HEAD" }}
 
   review_code: |-
-    {{ per "jaded_dev" }}
+    ## Persona
 
-    {{ ins "review_code" }}
-
-  dev_plan: |-
-    {{ per "architect" }}
-
-    {{ ins "dev_steps" }}
-
-    ## Task
-    {{ consume_args | join " " }}
-
-  archi: |-
-    {{ ins "archi" }}
+    {{ insert "jaded_dev" }}
 
     ## Instructions
+
+    {{ insert "review_code" }}
+
+  dev_plan: |-
+    ## Persona
+
+    {{ insert "architect" }}
+
+    ## Instructions
+
+    {{ insert "dev_steps" }}
+
+    ## Task
+
+    {{ consume_args | join " " }}
+
+  # This one looks clumsy and should be review and merged with dev_plan (looks like duplicates) or removed.
+  archi: |-
+    {{ insert "archi" }}
+
+    ## Instructions
+
     {{ consume_args | join " " }}
 
 
@@ -101,12 +126,15 @@ prompts:
 
     If the code is particularly complex or lengthy, focus on the most critical parts first, then offer to dive deeper into specific areas upon request.
 
-############
-# Personas #
-############
-# Rendered with `per` and prefixed by `## Persona`.
+###########
+# Inserts #
+###########
+# Rendered with `insert`.
 
-personas:
+inserts:
+  ############
+  # Personas #
+
   jaded_dev: |-
     Act as an experienced developer.
     Do not waste time in excessive details.
@@ -117,12 +145,9 @@ personas:
 
     You specialize in decomposing complex development tasks into manageable, sequential steps that maintain system stability throughout the implementation process. Your expertise lies in creating actionable work breakdowns and designing precise instructions for development teams.
 
-################
-# Instructions #
-################
-# Rendered with `ins` and prefixed by `## Instructions`.
+  ################
+  # Instructions #
 
-instructions:
   commit_msg: |-
     Analyse a diff and write a concise, informative and well-formatted commit message.
     The commit message should clearly and accurately summarize the changes in the diff.
@@ -209,7 +234,7 @@ instructions:
     Be direct and technical. Assume the reader is an experienced developer. If the code is solid with no meaningful issues, state so clearly.
 
   review_diff: |-
-    {{ ins "review_code" }}
+    {{ insert "review_code" }}
 
     The code will be provided as a diff, so make sure to only provide feedback about what changed, assume that what was already here was good.
     If some logic moved around (it appears both as removed content and added content), just ignore it because it was already here.
@@ -265,6 +290,8 @@ instructions:
 
     Now analyze the complex development task and provide your step-by-step implementation plan following the exact format specified above.
 
+  #####################################
+  # Everything under the kitchen sink #
   archi: |-
     ## Persona
     You are a senior software architect with expertise in clean architecture principles, functional programming paradigms, and data-driven design patterns. Your task is to create comprehensive architectural specifications for a software project that emphasizes orthogonality, simplicity, data-driven design, and functional programming.

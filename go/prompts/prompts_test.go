@@ -65,8 +65,8 @@ func TestGettersAndEvaluators(t *testing.T) {
 	eval := NewEvalContext(lib, nil)
 	eval.tmpl.Funcs(map[string]any{"git": func(...any) string { return "wow such diff" }})
 
-	evalTest(eval.persona, "persona", "jaded_dev")
-	evalTest(eval.instruction, "instruction", "commit_msg")
+	evalTest(eval.inserts, "persona", "jaded_dev")
+	evalTest(eval.inserts, "instruction", "commit_msg")
 	evalTest(eval.section2, "section1", "git_diff")
 }
 
