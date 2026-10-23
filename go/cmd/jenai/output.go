@@ -4,12 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
 
+	"github.com/mooss/bagend/go/sysu"
 	"github.com/mooss/jenai/go/config"
 	"github.com/mooss/jenai/go/highlight"
 	"github.com/mooss/jenai/go/llm/openrouter"
@@ -67,7 +67,7 @@ type display struct {
 }
 
 func newDisplay(qry *config.Query, teeFile, thoughtlessFile *utils.TeeFile) *display {
-	color := terminalColorEnabled(os.Stdout)
+	color := sysu.TerminalColorEnabled()
 	return &display{
 		qry:             qry,
 		output:          highlight.NewMarkdownStreamer(os.Stdout, "pygments", color),
@@ -79,7 +79,7 @@ func newDisplay(qry *config.Query, teeFile, thoughtlessFile *utils.TeeFile) *dis
 }
 
 func outputMarkdownString(content string) error {
-	output := highlight.NewMarkdownStreamer(os.Stdout, "pygments", terminalColorEnabled(os.Stdout))
+	output := highlight.NewMarkdownStreamer(os.Stdout, "pygments", sysu.TerminalColorEnabled())
 	if err := output.Write(content); err != nil {
 		return err
 	}
@@ -222,17 +222,4 @@ func teeHeader(qry *config.Query, prompt config.Prompt, spec models.Spec) (strin
 	}
 
 	return strings.Join([]string{"---", string(yamlmeta) + "---\n"}, "\n") + "\n", nil
-}
-
-func terminalColorEnabled(writer io.Writer) bool {
-	if os.Getenv("NO_COLOR") != "" {
-		return false
-	}
-
-	file, ok := writer.(*os.File)
-	if !ok {
-		return false
-	}
-	info, err := file.Stat()
-	return err == nil && info.Mode()&os.ModeCharDevice != 0
 }

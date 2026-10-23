@@ -14,6 +14,7 @@ import (
 
 	"github.com/mooss/bagend/go/flag"
 	"github.com/mooss/bagend/go/fun/eager/lie"
+	"github.com/mooss/bagend/go/sysu"
 	"github.com/mooss/jenai/go/prompts"
 	"github.com/mooss/jenai/go/utils"
 )
@@ -227,9 +228,8 @@ func readClipboard() (string, error) {
 
 // readStdin returns the content of stdin, if something was piped in.
 func readStdin() (string, error) {
-	stat, _ := os.Stdin.Stat()
-	if (stat.Mode() & os.ModeCharDevice) != 0 {
-		return "", nil // No data being piped.
+	if sysu.IsTerminal(os.Stdin) {
+		return "", nil
 	}
 
 	data, err := io.ReadAll(os.Stdin)
