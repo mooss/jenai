@@ -6,7 +6,67 @@ package generated
 // Returns a list of endpoints
 type ListEndpointsResponseX200 struct {
 	// List of available endpoints for a model
-	// Example: {"architecture": {"input_modalities": ["text"], "instruct_type": "chatml", "modality": "text->text", "output_modalities": ["text"], "tokenizer": "GPT"}, "created": 1692901234, "description": "GPT-4 is a large multimodal model that can solve difficult problems with greater accuracy.", "endpoints": [{"context_length": 8192, "latency_last_30m": {"p50": 0.25, "p75": 0.35, "p90": 0.48, "p99": 0.85}, "max_completion_tokens": 4096, "max_prompt_tokens": 8192, "model_id": "openai/gpt-4", "model_name": "GPT-4", "name": "OpenAI: GPT-4", "pricing": {"completion": "0.00006", "image": "0", "prompt": "0.00003", "request": "0"}, "provider_name": "OpenAI", "quantization": "fp16", "status": 0, "supported_parameters": ["temperature", "top_p", "max_tokens", "frequency_penalty", "presence_penalty"], "supports_diarization": false, "supports_implicit_caching": true, "tag": "openai", "throughput_last_30m": {"p50": 45.2, "p75": 38.5, "p90": 28.3, "p99": 15.1}, "uptime_last_1d": 99.8, "uptime_last_30m": 99.5, "uptime_last_5m": 100}], "id": "openai/gpt-4", "name": "GPT-4"}
+	// Example: {
+	//   "architecture": {
+	//     "input_modalities": [
+	//       "text"
+	//     ],
+	//     "instruct_type": "chatml",
+	//     "modality": "text->text",
+	//     "output_modalities": [
+	//       "text"
+	//     ],
+	//     "tokenizer": "GPT"
+	//   },
+	//   "created": 1692901234,
+	//   "description": "GPT-4 is a large multimodal model that can solve difficult problems with greater accuracy.",
+	//   "endpoints": [
+	//     {
+	//       "context_length": 8192,
+	//       "latency_last_30m": {
+	//         "p50": 0.25,
+	//         "p75": 0.35,
+	//         "p90": 0.48,
+	//         "p99": 0.85
+	//       },
+	//       "max_completion_tokens": 4096,
+	//       "max_prompt_tokens": 8192,
+	//       "model_id": "openai/gpt-4",
+	//       "model_name": "GPT-4",
+	//       "name": "OpenAI: GPT-4",
+	//       "pricing": {
+	//         "completion": "0.00006",
+	//         "image": "0",
+	//         "prompt": "0.00003",
+	//         "request": "0"
+	//       },
+	//       "provider_name": "OpenAI",
+	//       "quantization": "fp16",
+	//       "status": 0,
+	//       "supported_parameters": [
+	//         "temperature",
+	//         "top_p",
+	//         "max_tokens",
+	//         "frequency_penalty",
+	//         "presence_penalty"
+	//       ],
+	//       "supports_diarization": false,
+	//       "supports_implicit_caching": true,
+	//       "tag": "openai",
+	//       "throughput_last_30m": {
+	//         "p50": 45.2,
+	//         "p75": 38.5,
+	//         "p90": 28.3,
+	//         "p99": 15.1
+	//       },
+	//       "uptime_last_1d": 99.8,
+	//       "uptime_last_30m": 99.5,
+	//       "uptime_last_5m": 100
+	//     }
+	//   ],
+	//   "id": "openai/gpt-4",
+	//   "name": "GPT-4"
+	// }
 	Data ListEndpointsResponseX200Data `json:"data" yaml:"data"`
 }
 
@@ -21,7 +81,78 @@ type ListEndpointsResponseX200Data struct {
 	// Example: "GPT-4 is a large multimodal model that can solve difficult problems with greater accuracy."
 	Description string `json:"description" yaml:"description"`
 	// List of available endpoints for this model
-	// Example: {"context_length": 8192, "latency_last_30m": {"p50": 0.25, "p75": 0.35, "p90": 0.48, "p99": 0.85}, "max_completion_tokens": 4096, "max_prompt_tokens": 8192, "model_id": "openai/gpt-4", "model_name": "GPT-4", "name": "OpenAI: GPT-4", "native_tools": {"openrouter:web_search": {"type": "web_search_20260209"}}, "perf_last_30m_by_workload": {"text_generation": {"latency": {"p50": 250, "p75": 350, "p90": 480, "p99": 850}, "request_count": 1000, "throughput": {"p50": 45.2, "p75": 38.5, "p90": 28.3, "p99": 15.1}}}, "pricing": {"completion": "0.00006", "image": "0", "prompt": "0.00003", "request": "0"}, "provider_name": "OpenAI", "quantization": "fp16", "service_tier": null, "status": 0, "supported_parameters": ["temperature", "top_p", "max_tokens"], "supports_diarization": false, "supports_image_reference": false, "supports_implicit_caching": true, "supports_multiple_audio_references": false, "supports_tool_choice": {"auto": true, "function": true, "none": true, "required": true}, "supports_voice_cloning": false, "tag": "openai", "throughput_last_30m": {"p50": 45.2, "p75": 38.5, "p90": 28.3, "p99": 15.1}, "uptime_last_1d": 99.8, "uptime_last_30m": 99.5, "uptime_last_5m": 100}
+	// Example: {
+	//   "context_length": 8192,
+	//   "latency_last_30m": {
+	//     "p50": 0.25,
+	//     "p75": 0.35,
+	//     "p90": 0.48,
+	//     "p99": 0.85
+	//   },
+	//   "max_completion_tokens": 4096,
+	//   "max_prompt_tokens": 8192,
+	//   "model_id": "openai/gpt-4",
+	//   "model_name": "GPT-4",
+	//   "name": "OpenAI: GPT-4",
+	//   "native_tools": {
+	//     "openrouter:web_search": {
+	//       "type": "web_search_20260209"
+	//     }
+	//   },
+	//   "perf_last_30m_by_workload": {
+	//     "text_generation": {
+	//       "latency": {
+	//         "p50": 250,
+	//         "p75": 350,
+	//         "p90": 480,
+	//         "p99": 850
+	//       },
+	//       "request_count": 1000,
+	//       "throughput": {
+	//         "p50": 45.2,
+	//         "p75": 38.5,
+	//         "p90": 28.3,
+	//         "p99": 15.1
+	//       }
+	//     }
+	//   },
+	//   "pricing": {
+	//     "completion": "0.00006",
+	//     "image": "0",
+	//     "prompt": "0.00003",
+	//     "request": "0"
+	//   },
+	//   "provider_name": "OpenAI",
+	//   "quantization": "fp16",
+	//   "service_tier": null,
+	//   "status": 0,
+	//   "supported_parameters": [
+	//     "temperature",
+	//     "top_p",
+	//     "max_tokens"
+	//   ],
+	//   "supports_diarization": false,
+	//   "supports_image_reference": false,
+	//   "supports_implicit_caching": true,
+	//   "supports_multiple_audio_references": false,
+	//   "supports_tool_choice": {
+	//     "auto": true,
+	//     "function": true,
+	//     "none": true,
+	//     "required": true
+	//   },
+	//   "supports_voice_cloning": false,
+	//   "tag": "openai",
+	//   "throughput_last_30m": {
+	//     "p50": 45.2,
+	//     "p75": 38.5,
+	//     "p90": 28.3,
+	//     "p99": 15.1
+	//   },
+	//   "uptime_last_1d": 99.8,
+	//   "uptime_last_30m": 99.5,
+	//   "uptime_last_5m": 100
+	// }
 	Endpoints []ListEndpointsResponseX200DataEndpointsItem `json:"endpoints" yaml:"endpoints"`
 	// Unique identifier for the model
 	// Example: "openai/gpt-4"
@@ -34,18 +165,42 @@ type ListEndpointsResponseX200Data struct {
 // Model architecture information
 type ListEndpointsResponseX200DataArchitecture struct {
 	// Supported input modalities
-	// Allowed values: "text", "image", "file", "audio", "video"
+	// Allowed values: ["text", "image", "file", "audio", "video"]
 	// Example: "text"
 	InputModalities []string `json:"input_modalities" yaml:"input_modalities"`
 	// Instruction format type
-	// Allowed values: "none", "airoboros", "alpaca", "alpaca-modif", "chatml", "claude", "code-llama", "gemma", "llama2", "llama3", "mistral", "nemotron", "neural", "openchat", "phi3", "rwkv", "vicuna", "zephyr", "deepseek-r1", "deepseek-v3.1", "qwq", "qwen3", null
+	// Allowed values: [
+	//   "none",
+	//   "airoboros",
+	//   "alpaca",
+	//   "alpaca-modif",
+	//   "chatml",
+	//   "claude",
+	//   "code-llama",
+	//   "gemma",
+	//   "llama2",
+	//   "llama3",
+	//   "mistral",
+	//   "nemotron",
+	//   "neural",
+	//   "openchat",
+	//   "phi3",
+	//   "rwkv",
+	//   "vicuna",
+	//   "zephyr",
+	//   "deepseek-r1",
+	//   "deepseek-v3.1",
+	//   "qwq",
+	//   "qwen3",
+	//   null
+	// ]
 	// Example: "chatml"
 	InstructType *string `json:"instruct_type" yaml:"instruct_type"`
 	// Primary modality of the model
 	// Example: "text"
 	Modality *string `json:"modality" yaml:"modality"`
 	// Supported output modalities
-	// Allowed values: "text", "image", "embeddings", "audio", "video", "rerank", "decisions", "speech", "transcription"
+	// Allowed values: ["text", "image", "embeddings", "audio", "video", "rerank", "decisions", "speech", "transcription"]
 	// Example: "text"
 	OutputModalities []string `json:"output_modalities" yaml:"output_modalities"`
 	// Tokenizer type used by the model
@@ -78,7 +233,28 @@ type ListEndpointsResponseX200DataArchitecture struct {
 	//   "type": "string",
 	//   "x-speakeasy-unknown-values": "allow"
 	// }
-	// Allowed values: "Router", "Media", "Other", "GPT", "Claude", "Gemini", "Gemma", "Grok", "Cohere", "Nova", "Qwen", "Yi", "DeepSeek", "Mistral", "Llama2", "Llama3", "Llama4", "PaLM", "RWKV", "Qwen3"
+	// Allowed values: [
+	//   "Router",
+	//   "Media",
+	//   "Other",
+	//   "GPT",
+	//   "Claude",
+	//   "Gemini",
+	//   "Gemma",
+	//   "Grok",
+	//   "Cohere",
+	//   "Nova",
+	//   "Qwen",
+	//   "Yi",
+	//   "DeepSeek",
+	//   "Mistral",
+	//   "Llama2",
+	//   "Llama3",
+	//   "Llama4",
+	//   "PaLM",
+	//   "RWKV",
+	//   "Qwen3"
+	// ]
 	// Example: "GPT"
 	Tokenizer string `json:"tokenizer" yaml:"tokenizer"`
 }
@@ -103,7 +279,124 @@ type ListEndpointsResponseX200DataEndpointsItem struct {
 	// Endpoint performance over the last 30 minutes, keyed by the kind of request served (e.g. `text_generation`, `image_generation`). Additive to the legacy singular latency and throughput fields; image and video generation report end-to-end latency. Only visible when authenticated with an API key or cookie.
 	PerfLast30mByWorkload *ListEndpointsResponseX200DataEndpointsItemPerfLast30mByWorkload `json:"perf_last_30m_by_workload" yaml:"perf_last_30m_by_workload"`
 	Pricing               ListEndpointsResponseX200DataEndpointsItemPricing                `json:"pricing" yaml:"pricing"`
-	// Allowed values: "Modal", "AkashML", "AI21", "AionLabs", "Alibaba", "Ambient", "Baidu", "Amazon Bedrock", "Amazon Nova", "Anthropic", "Arcee AI", "AssemblyAI", "AtlasCloud", "Avian", "Azure", "BaseTen", "BytePlus", "Black Forest Labs", "Cerebras", "Chutes", "Cirrascale", "Claude Platform on AWS", "Clarifai", "Cloudflare", "Cohere", "CoreWeave", "Cosine", "Crucible", "Crusoe", "Darkbloom", "Databricks", "Decart", "Deepgram", "DeepInfra", "DeepSeek", "DekaLLM", "DigitalOcean", "ElevenLabs", "Featherless", "Fireworks", "Fish Audio", "Friendli", "GMICloud", "Google", "Google AI Studio", "Groq", "HeyGen", "Inception", "Inceptron", "InferenceNet", "Ionstream", "Infermatic", "Io Net", "Inferact vLLM", "Inflection", "Liquid", "Makora", "Mara", "Mancer 2", "Meta", "Minimax", "ModelRun", "Mistral", "Modular", "Moonshot AI", "Morph", "VoyageAI by MongoDB", "TypeSafe", "Near AI", "Nebius", "Nex AGI", "NextBit", "Novita", "Nvidia", "Ollama", "OpenAI", "OpenInference", "Parasail", "ParetoAlpha", "Poolside", "PrimeIntellect", "Perceptron", "Perplexity", "Phala", "Recraft", "Recursive", "Reka", "Relace", "Respan", "Sail Research", "Sakana AI", "SambaNova", "ScaleDown", "Seed", "SiliconFlow", "Sourceful", "StepFun", "Stealth", "StreamLake", "Switchpoint", "Tencent", "Tenstorrent", "Thinking Machines", "Together", "Unbiased", "Upstage", "Venice", "Wafer", "WandB", "Quiver", "Krea", "Runway", "Xiaomi", "xAI", "Z.AI", "FakeProvider"
+	// Allowed values: [
+	//   "Modal",
+	//   "AkashML",
+	//   "AI21",
+	//   "AionLabs",
+	//   "Alibaba",
+	//   "Ambient",
+	//   "Baidu",
+	//   "Amazon Bedrock",
+	//   "Amazon Nova",
+	//   "Anthropic",
+	//   "Arcee AI",
+	//   "AssemblyAI",
+	//   "AtlasCloud",
+	//   "Avian",
+	//   "Azure",
+	//   "BaseTen",
+	//   "BytePlus",
+	//   "Black Forest Labs",
+	//   "Cerebras",
+	//   "Chutes",
+	//   "Cirrascale",
+	//   "Claude Platform on AWS",
+	//   "Clarifai",
+	//   "Cloudflare",
+	//   "Cohere",
+	//   "CoreWeave",
+	//   "Cosine",
+	//   "Crucible",
+	//   "Crusoe",
+	//   "Darkbloom",
+	//   "Databricks",
+	//   "Decart",
+	//   "Deepgram",
+	//   "DeepInfra",
+	//   "DeepSeek",
+	//   "DekaLLM",
+	//   "DigitalOcean",
+	//   "ElevenLabs",
+	//   "Featherless",
+	//   "Fireworks",
+	//   "Fish Audio",
+	//   "Friendli",
+	//   "GMICloud",
+	//   "Google",
+	//   "Google AI Studio",
+	//   "Groq",
+	//   "HeyGen",
+	//   "Inception",
+	//   "Inceptron",
+	//   "InferenceNet",
+	//   "Ionstream",
+	//   "Infermatic",
+	//   "Io Net",
+	//   "Inferact vLLM",
+	//   "Inflection",
+	//   "Liquid",
+	//   "Makora",
+	//   "Mara",
+	//   "Mancer 2",
+	//   "Meta",
+	//   "Minimax",
+	//   "ModelRun",
+	//   "Mistral",
+	//   "Modular",
+	//   "Moonshot AI",
+	//   "Morph",
+	//   "VoyageAI by MongoDB",
+	//   "TypeSafe",
+	//   "Near AI",
+	//   "Nebius",
+	//   "Nex AGI",
+	//   "NextBit",
+	//   "Novita",
+	//   "Nvidia",
+	//   "Ollama",
+	//   "OpenAI",
+	//   "OpenInference",
+	//   "Parasail",
+	//   "ParetoAlpha",
+	//   "Poolside",
+	//   "PrimeIntellect",
+	//   "Perceptron",
+	//   "Perplexity",
+	//   "Phala",
+	//   "Recraft",
+	//   "Recursive",
+	//   "Reka",
+	//   "Relace",
+	//   "Respan",
+	//   "Sail Research",
+	//   "Sakana AI",
+	//   "SambaNova",
+	//   "ScaleDown",
+	//   "Seed",
+	//   "SiliconFlow",
+	//   "Sourceful",
+	//   "StepFun",
+	//   "Stealth",
+	//   "StreamLake",
+	//   "Switchpoint",
+	//   "Tencent",
+	//   "Tenstorrent",
+	//   "Thinking Machines",
+	//   "Together",
+	//   "Unbiased",
+	//   "Upstage",
+	//   "Venice",
+	//   "Wafer",
+	//   "WandB",
+	//   "Quiver",
+	//   "Krea",
+	//   "Runway",
+	//   "Xiaomi",
+	//   "xAI",
+	//   "Z.AI",
+	//   "FakeProvider"
+	// ]
 	// Example: "OpenAI"
 	ProviderName string `json:"provider_name" yaml:"provider_name"`
 	// anyOf composition:
@@ -128,13 +421,40 @@ type ListEndpointsResponseX200DataEndpointsItem struct {
 	// }
 	Quantization string `json:"quantization" yaml:"quantization"`
 	// The service tier this endpoint sells, or null for a standard endpoint. The same value whether the provider selects the tier with a request parameter or with a dedicated model id. Always the canonical tier: priority covers the fast request alias and the turbo, highspeed, and prime provider model-id spellings, none of which this field reports.
-	// Allowed values: "flex", "priority", "ultrafast", null
+	// Allowed values: ["flex", "priority", "ultrafast", null]
 	// Example: "priority"
 	ServiceTier *string `json:"service_tier" yaml:"service_tier"`
-	// Allowed values: 0, -1, -2, -3, -5, -10
+	// Allowed values: [0, -1, -2, -3, -5, -10]
 	// Example: 0
 	Status *int64 `json:"status" yaml:"status"`
-	// Allowed values: "temperature", "top_p", "top_k", "min_p", "top_a", "frequency_penalty", "presence_penalty", "repetition_penalty", "max_tokens", "max_completion_tokens", "logit_bias", "logprobs", "top_logprobs", "prediction", "seed", "response_format", "structured_outputs", "stop", "tools", "tool_choice", "parallel_tool_calls", "include_reasoning", "reasoning", "reasoning_effort", "web_search_options", "verbosity"
+	// Allowed values: [
+	//   "temperature",
+	//   "top_p",
+	//   "top_k",
+	//   "min_p",
+	//   "top_a",
+	//   "frequency_penalty",
+	//   "presence_penalty",
+	//   "repetition_penalty",
+	//   "max_tokens",
+	//   "max_completion_tokens",
+	//   "logit_bias",
+	//   "logprobs",
+	//   "top_logprobs",
+	//   "prediction",
+	//   "seed",
+	//   "response_format",
+	//   "structured_outputs",
+	//   "stop",
+	//   "tools",
+	//   "tool_choice",
+	//   "parallel_tool_calls",
+	//   "include_reasoning",
+	//   "reasoning",
+	//   "reasoning_effort",
+	//   "web_search_options",
+	//   "verbosity"
+	// ]
 	// Example: "temperature"
 	SupportedParameters []string `json:"supported_parameters" yaml:"supported_parameters"`
 	// Whether this STT endpoint can label each transcript segment with a speaker (speaker diarization). False when the endpoint has not declared support.
@@ -698,7 +1018,7 @@ type ListEndpointsResponseX200DataEndpointsItemPricingOverridesItem struct {
 	// Overridden price in USD per token for prompt (input) processing
 	Prompt *string `json:"prompt" yaml:"prompt"`
 	// Condition: UTC weekdays the entry applies on, evaluated at the request instant. Scopes the utc_start/utc_end window (or, without a window, the whole UTC day) to the listed days. Absent means every day.
-	// Allowed values: "monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"
+	// Allowed values: ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
 	// minItems: 1
 	UtcDays *[]string `json:"utc_days" yaml:"utc_days"`
 	// Condition: exclusive end of a daily UTC time window as an HHMM clock number (e.g. 400 = 04:00)

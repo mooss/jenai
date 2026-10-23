@@ -7,7 +7,60 @@ package generated
 // Returns the model details
 type GetModelResponseX200 struct {
 	// Information about an AI model available on OpenRouter
-	// Example: {"architecture": {"input_modalities": ["text"], "instruct_type": "chatml", "modality": "text->text", "output_modalities": ["text"], "tokenizer": "GPT"}, "canonical_slug": "openai/gpt-4", "context_length": 8192, "created": 1692901234, "default_parameters": null, "description": "GPT-4 is a large multimodal model that can solve difficult problems with greater accuracy.", "expiration_date": null, "id": "openai/gpt-4", "knowledge_cutoff": null, "links": {"details": "/api/v1/models/openai/gpt-5.4/endpoints"}, "name": "GPT-4", "per_request_limits": null, "pricing": {"completion": "0.00006", "image": "0", "prompt": "0.00003", "request": "0"}, "reasoning": {"default_effort": "medium", "default_enabled": true, "mandatory": false, "supported_efforts": ["high", "medium", "low", "minimal"]}, "supported_parameters": ["temperature", "top_p", "max_tokens"], "supported_voices": null, "top_provider": {"context_length": 8192, "is_moderated": true, "max_completion_tokens": 4096}}
+	// Example: {
+	//   "architecture": {
+	//     "input_modalities": [
+	//       "text"
+	//     ],
+	//     "instruct_type": "chatml",
+	//     "modality": "text->text",
+	//     "output_modalities": [
+	//       "text"
+	//     ],
+	//     "tokenizer": "GPT"
+	//   },
+	//   "canonical_slug": "openai/gpt-4",
+	//   "context_length": 8192,
+	//   "created": 1692901234,
+	//   "default_parameters": null,
+	//   "description": "GPT-4 is a large multimodal model that can solve difficult problems with greater accuracy.",
+	//   "expiration_date": null,
+	//   "id": "openai/gpt-4",
+	//   "knowledge_cutoff": null,
+	//   "links": {
+	//     "details": "/api/v1/models/openai/gpt-5.4/endpoints"
+	//   },
+	//   "name": "GPT-4",
+	//   "per_request_limits": null,
+	//   "pricing": {
+	//     "completion": "0.00006",
+	//     "image": "0",
+	//     "prompt": "0.00003",
+	//     "request": "0"
+	//   },
+	//   "reasoning": {
+	//     "default_effort": "medium",
+	//     "default_enabled": true,
+	//     "mandatory": false,
+	//     "supported_efforts": [
+	//       "high",
+	//       "medium",
+	//       "low",
+	//       "minimal"
+	//     ]
+	//   },
+	//   "supported_parameters": [
+	//     "temperature",
+	//     "top_p",
+	//     "max_tokens"
+	//   ],
+	//   "supported_voices": null,
+	//   "top_provider": {
+	//     "context_length": 8192,
+	//     "is_moderated": true,
+	//     "max_completion_tokens": 4096
+	//   }
+	// }
 	Data GetModelResponseX200Data `json:"data" yaml:"data"`
 }
 
@@ -17,10 +70,35 @@ type GetModelResponseX200Data struct {
 	// Example: {"name": "Claude Sonnet 4.5", "slug": "anthropic/claude-sonnet-4.5"}
 	AliasTarget *GetModelResponseX200DataAliasTarget `json:"alias_target" yaml:"alias_target"`
 	// Model architecture information
-	// Example: {"input_modalities": ["text"], "instruct_type": "chatml", "modality": "text->text", "output_modalities": ["text"], "tokenizer": "GPT"}
+	// Example: {
+	//   "input_modalities": [
+	//     "text"
+	//   ],
+	//   "instruct_type": "chatml",
+	//   "modality": "text->text",
+	//   "output_modalities": [
+	//     "text"
+	//   ],
+	//   "tokenizer": "GPT"
+	// }
 	Architecture GetModelResponseX200DataArchitecture `json:"architecture" yaml:"architecture"`
 	// Third-party benchmark rankings for this model. Omitted when no benchmark data is available.
-	// Example: {"artificial_analysis": {"agentic_index": 55.8, "coding_index": 63.2, "intelligence_index": 71.4}, "design_arena": [{"arena": "models", "category": "website", "elo": 1385.2, "rank": 5, "win_rate": 62.5}]}
+	// Example: {
+	//   "artificial_analysis": {
+	//     "agentic_index": 55.8,
+	//     "coding_index": 63.2,
+	//     "intelligence_index": 71.4
+	//   },
+	//   "design_arena": [
+	//     {
+	//       "arena": "models",
+	//       "category": "website",
+	//       "elo": 1385.2,
+	//       "rank": 5,
+	//       "win_rate": 62.5
+	//     }
+	//   ]
+	// }
 	Benchmarks *GetModelResponseX200DataBenchmarks `json:"benchmarks" yaml:"benchmarks"`
 	// Canonical slug for the model
 	// Example: "openai/gpt-4"
@@ -32,7 +110,14 @@ type GetModelResponseX200Data struct {
 	// Example: 1692901234
 	Created int64 `json:"created" yaml:"created"`
 	// Default parameters for this model
-	// Example: {"frequency_penalty": 0, "presence_penalty": 0, "repetition_penalty": 1, "temperature": 0.7, "top_k": 0, "top_p": 0.9}
+	// Example: {
+	//   "frequency_penalty": 0,
+	//   "presence_penalty": 0,
+	//   "repetition_penalty": 1,
+	//   "temperature": 0.7,
+	//   "top_k": 0,
+	//   "top_p": 0.9
+	// }
 	DefaultParameters *GetModelResponseX200DataDefaultParameters `json:"default_parameters" yaml:"default_parameters"`
 	// Description of the model
 	// Example: "GPT-4 is a large multimodal model that can solve difficult problems with greater accuracy."
@@ -62,10 +147,47 @@ type GetModelResponseX200Data struct {
 	// Example: {"completion": "0.00006", "image": "0", "prompt": "0.00003", "request": "0"}
 	Pricing GetModelResponseX200DataPricing `json:"pricing" yaml:"pricing"`
 	// Reasoning effort configuration. Omitted for non-reasoning models and dynamic router models.
-	// Example: {"default_effort": "medium", "default_enabled": true, "mandatory": false, "supported_efforts": ["high", "medium", "low", "minimal"]}
+	// Example: {
+	//   "default_effort": "medium",
+	//   "default_enabled": true,
+	//   "mandatory": false,
+	//   "supported_efforts": [
+	//     "high",
+	//     "medium",
+	//     "low",
+	//     "minimal"
+	//   ]
+	// }
 	Reasoning *GetModelResponseX200DataReasoning `json:"reasoning" yaml:"reasoning"`
 	// List of supported parameters for this model
-	// Allowed values: "temperature", "top_p", "top_k", "min_p", "top_a", "frequency_penalty", "presence_penalty", "repetition_penalty", "max_tokens", "max_completion_tokens", "logit_bias", "logprobs", "top_logprobs", "prediction", "seed", "response_format", "structured_outputs", "stop", "tools", "tool_choice", "parallel_tool_calls", "include_reasoning", "reasoning", "reasoning_effort", "web_search_options", "verbosity"
+	// Allowed values: [
+	//   "temperature",
+	//   "top_p",
+	//   "top_k",
+	//   "min_p",
+	//   "top_a",
+	//   "frequency_penalty",
+	//   "presence_penalty",
+	//   "repetition_penalty",
+	//   "max_tokens",
+	//   "max_completion_tokens",
+	//   "logit_bias",
+	//   "logprobs",
+	//   "top_logprobs",
+	//   "prediction",
+	//   "seed",
+	//   "response_format",
+	//   "structured_outputs",
+	//   "stop",
+	//   "tools",
+	//   "tool_choice",
+	//   "parallel_tool_calls",
+	//   "include_reasoning",
+	//   "reasoning",
+	//   "reasoning_effort",
+	//   "web_search_options",
+	//   "verbosity"
+	// ]
 	// Example: "temperature"
 	SupportedParameters []string `json:"supported_parameters" yaml:"supported_parameters"`
 	// List of supported voice identifiers for TTS models. Null for non-TTS models.
@@ -86,22 +208,67 @@ type GetModelResponseX200DataAliasTarget struct {
 // Model architecture information
 type GetModelResponseX200DataArchitecture struct {
 	// Supported input modalities
-	// Allowed values: "text", "image", "file", "audio", "video"
+	// Allowed values: ["text", "image", "file", "audio", "video"]
 	// Example: "text"
 	InputModalities []string `json:"input_modalities" yaml:"input_modalities"`
 	// Instruction format type
-	// Allowed values: "none", "airoboros", "alpaca", "alpaca-modif", "chatml", "claude", "code-llama", "gemma", "llama2", "llama3", "mistral", "nemotron", "neural", "openchat", "phi3", "rwkv", "vicuna", "zephyr", "deepseek-r1", "deepseek-v3.1", "qwq", "qwen3", null
+	// Allowed values: [
+	//   "none",
+	//   "airoboros",
+	//   "alpaca",
+	//   "alpaca-modif",
+	//   "chatml",
+	//   "claude",
+	//   "code-llama",
+	//   "gemma",
+	//   "llama2",
+	//   "llama3",
+	//   "mistral",
+	//   "nemotron",
+	//   "neural",
+	//   "openchat",
+	//   "phi3",
+	//   "rwkv",
+	//   "vicuna",
+	//   "zephyr",
+	//   "deepseek-r1",
+	//   "deepseek-v3.1",
+	//   "qwq",
+	//   "qwen3",
+	//   null
+	// ]
 	// Example: "chatml"
 	InstructType *string `json:"instruct_type" yaml:"instruct_type"`
 	// Primary modality of the model
 	// Example: "text->text"
 	Modality *string `json:"modality" yaml:"modality"`
 	// Supported output modalities
-	// Allowed values: "text", "image", "embeddings", "audio", "video", "rerank", "decisions", "speech", "transcription"
+	// Allowed values: ["text", "image", "embeddings", "audio", "video", "rerank", "decisions", "speech", "transcription"]
 	// Example: "text"
 	OutputModalities []string `json:"output_modalities" yaml:"output_modalities"`
 	// Tokenizer type used by the model
-	// Allowed values: "Router", "Media", "Other", "GPT", "Claude", "Gemini", "Gemma", "Grok", "Cohere", "Nova", "Qwen", "Yi", "DeepSeek", "Mistral", "Llama2", "Llama3", "Llama4", "PaLM", "RWKV", "Qwen3"
+	// Allowed values: [
+	//   "Router",
+	//   "Media",
+	//   "Other",
+	//   "GPT",
+	//   "Claude",
+	//   "Gemini",
+	//   "Gemma",
+	//   "Grok",
+	//   "Cohere",
+	//   "Nova",
+	//   "Qwen",
+	//   "Yi",
+	//   "DeepSeek",
+	//   "Mistral",
+	//   "Llama2",
+	//   "Llama3",
+	//   "Llama4",
+	//   "PaLM",
+	//   "RWKV",
+	//   "Qwen3"
+	// ]
 	// Example: "GPT"
 	Tokenizer *string `json:"tokenizer" yaml:"tokenizer"`
 }
@@ -243,7 +410,7 @@ type GetModelResponseX200DataPricingOverridesItem struct {
 	// Overridden price in USD per token for prompt (input) processing
 	Prompt *string `json:"prompt" yaml:"prompt"`
 	// Condition: UTC weekdays the entry applies on, evaluated at the request instant. Scopes the utc_start/utc_end window (or, without a window, the whole UTC day) to the listed days. Absent means every day.
-	// Allowed values: "monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"
+	// Allowed values: ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
 	// minItems: 1
 	UtcDays *[]string `json:"utc_days" yaml:"utc_days"`
 	// Condition: exclusive end of a daily UTC time window as an HHMM clock number (e.g. 400 = 04:00)
@@ -263,7 +430,7 @@ type GetModelResponseX200DataReasoning struct {
 	// When true, reasoning cannot be disabled and effort "none" is rejected.
 	Mandatory bool `json:"mandatory" yaml:"mandatory"`
 	// Allowed reasoning effort values for this model, in descending effort order (highest first). Null means no allowlist — all gateway effort values are accepted.
-	// Allowed values: "max", "xhigh", "high", "medium", "low", "minimal", "none", null
+	// Allowed values: ["max", "xhigh", "high", "medium", "low", "minimal", "none", null]
 	// Example: "medium"
 	SupportedEfforts *[]*string `json:"supported_efforts" yaml:"supported_efforts"`
 	// Present and `true` when the model accepts `reasoning.max_tokens` in requests (Anthropic-style) instead of or in addition to `reasoning.effort`. Omitted otherwise.

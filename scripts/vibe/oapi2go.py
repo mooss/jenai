@@ -403,23 +403,15 @@ def render(ir: IR, package: str, argv: list[str]) -> str:
             if field_ir.description:
                 output.extend(comment_lines(field_ir.description, "\t"))
             if field_ir.enum:
-                output.extend(
-                    comment_lines(
-                        "Allowed values: "
-                        + ", ".join(
-                            json.dumps(value, ensure_ascii=False)
-                            for value in field_ir.enum
-                        ),
-                        "\t",
-                    )
-                )
+                allowed_json = json.dumps(field_ir.enum, ensure_ascii=False)
+                if len(allowed_json) > 100:
+                    allowed_json = json.dumps(field_ir.enum, ensure_ascii=False, indent=2)
+                output.extend(comment_lines(f"Allowed values: {allowed_json}", "\t"))
             if field_ir.example is not None:
-                output.extend(
-                    comment_lines(
-                        f"Example: {json.dumps(field_ir.example, ensure_ascii=False)}",
-                        "\t",
-                    )
-                )
+                example_json = json.dumps(field_ir.example, ensure_ascii=False)
+                if len(example_json) > 100:
+                    example_json = json.dumps(field_ir.example, ensure_ascii=False, indent=2)
+                output.extend(comment_lines(f"Example: {example_json}", "\t"))
             if field_ir.format:
                 output.extend(comment_lines(f"format: {field_ir.format}", "\t"))
             if field_ir.min_items is not None:
