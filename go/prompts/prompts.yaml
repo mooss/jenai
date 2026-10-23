@@ -50,10 +50,6 @@ prompts:
     # Instructions
     {{ consume_args | join " " }}
 
-  diff_review: |-
-    {{ per "jaded_dev"}}
-
-    {{ ins "diff_review" }}
 
   ##################
   # Inline prompts #
@@ -342,38 +338,6 @@ instructions:
     - DO ensure all recommendations support the four key principles: orthogonality, simplicity, data-driven design, and functional programming
 
     Think through each architectural decision step-by-step, explaining how it supports the core principles before presenting your final specification.
-
-  diff_review: |-
-    Analyze the code across the following categories:
-
-    1.  **Correctness & Bugs:**
-        *   Does the code correctly implement its intended functionality?
-        *   Are there any logical errors, off-by-one errors, or potential runtime exceptions (e.g., null pointer, division by zero)?
-        *   How are edge cases handled (empty inputs, nulls, unexpected data types)?
-
-    2.  **Security:**
-        *   Are there any obvious security vulnerabilities (e.g., SQL injection, XSS, hardcoded secrets/credentials)?
-
-    3.  **Performance:**
-        *   Are there inefficient algorithms or data structures used?
-        *   Are there potential performance bottlenecks, such as N+1 queries, unnecessary loops or memory allocations?
-
-    4.  **Readability & Maintainability (Code Elegance):**
-        *   **Clarity:** Is the code easy to understand? Are variable and function names descriptive and clear?
-        *   **Structure:** Is the code well-organized? Are functions too long or doing too many things?
-        *   **DRY Principle:** Is there duplicated code that could be refactored into a shared function or class?
-        *   **Comments:** Are the comments useful, or do they just restate what the code already says? Are complex parts undocumented?
-        *   **Style & Consistency:** Does the code follow common idioms and stylistic conventions?
-
-    For each issue you find, please format your response as follows:
-
-    *   **Category:** [e.g., Bug, Performance, Readability]
-    *   **Location:** [e.g., Line 15-22, in the `calculateTotal` function]
-    *   **Issue:** [A clear, concise description of the problem.]
-    *   **Impact:** [Explain why this is a problem (e.g., "This will cause a crash if the input list is empty.")]
-    *   **Suggestion:** [Provide a concrete suggestion or a refactored code snippet for improvement.]
-
-    Maintain a constructive and educational tone.
 
 #######################
 # Sections of level 1 #
