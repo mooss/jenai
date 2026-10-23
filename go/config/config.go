@@ -34,7 +34,7 @@ type Query struct {
 	Model              string            `yaml:"model,omitempty" json:"model,omitempty"`
 	Paste              bool              `yaml:"paste,omitempty" json:"paste,omitempty"`
 	Positional         []string          `yaml:"positional,omitempty" json:"positional,omitempty"`
-	Reasoning          string            `yaml:"reasoning,omitempty" json:"reasoning,omitempty"`
+	Effort             string            `yaml:"effort,omitempty" json:"effort,omitempty"`
 	Thoughtless        bool              `yaml:"thoughtless,omitempty" json:"thoughtless,omitempty"`
 	ThoughtlessTeeFile string            `yaml:"thoughtlessteefile,omitempty" json:"thoughtlessteefile,omitempty"`
 	TeeFile            string            `yaml:"teefile,omitempty" json:"teefile,omitempty"`
@@ -60,7 +60,7 @@ func (qry *Query) BindFlags() *flag.Parser {
 		"model", &qry.Model, "Model name (short name from `model-zoo` or provider:author/model)",
 	).Alias("m").Default("spark")
 	flags.Bool("paste", &qry.Paste, "Use clipboard content as prompt")
-	flags.String("reasoning", &qry.Reasoning, "Reasoning effort (must be supported by the model)")
+	flags.String("effort", &qry.Effort, "Reasoning effort (must be supported by the model)")
 	flags.String("tee", &qry.TeeFile, "Output first answer to both stdout and FILE (overwritten)")
 	flags.Bool("thoughtless", &qry.Thoughtless, "Hide model reasoning").Alias("t")
 	flags.String("thoughtless-tee", &qry.ThoughtlessTeeFile,

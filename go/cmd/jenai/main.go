@@ -236,16 +236,16 @@ func modelAndAPIKey(qry *config.Query) (models.Spec, string, error) {
 	if err != nil {
 		return models.Spec{}, "", err
 	}
-	if qry.Reasoning != "" {
-		if !slices.Contains(fun.ZeroDeref(spec.Reasoning).SupportedEfforts, qry.Reasoning) {
+	if qry.Effort != "" {
+		if !slices.Contains(fun.ZeroDeref(spec.Reasoning).SupportedEfforts, qry.Effort) {
 			msg := "reasoning effort %q is not supported by model %q"
-			return models.Spec{}, "", fmt.Errorf(msg, qry.Reasoning, spec.QualifiedName())
+			return models.Spec{}, "", fmt.Errorf(msg, qry.Effort, spec.QualifiedName())
 		}
 
 		supportedEfforts := append([]string(nil), spec.Reasoning.SupportedEfforts...)
 		spec.Reasoning = &models.ReasoningSpec{
 			SupportedEfforts: supportedEfforts,
-			DefaultEffort:    qry.Reasoning,
+			DefaultEffort:    qry.Effort,
 		}
 	}
 	apiKey := noerr(qry.APIKeyFor(spec.Provider))

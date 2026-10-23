@@ -104,7 +104,7 @@ The completion commands (=oneshot=, =prompt= and =edit=) use common flags to con
 *** Model selection
 
  - =-m|--model= :: selects short zoo name (=glm-flash=) or =provider:author/model= (=openrouter:z-ai/glm-5.3-flash=).
- - =--reasoning= :: sets reasoning effort.
+ - =--effort= :: sets reasoning effort.
 
 *** Output
 
