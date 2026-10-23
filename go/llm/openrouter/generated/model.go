@@ -1,4 +1,4 @@
-// Generated with arguments: ["scripts/vibe/oapi2go.py", "--package", "generated"]
+// Generated with arguments: ["scripts/vibe/oapi2go.py", "--package", "generated", "--keep", "200"]
 //
 //revive:disable:var-naming,line-length-limit
 package generated
@@ -235,49 +235,4 @@ type GetModelResponseX200DataTopProvider struct {
 	IsModerated bool `json:"is_moderated" yaml:"is_moderated"`
 	// Maximum completion tokens from the top provider. Input and output tokens share the context window, so the effective maximum output for a request is further limited by the context remaining after input tokens.
 	MaxCompletionTokens *int64 `json:"max_completion_tokens" yaml:"max_completion_tokens"`
-}
-
-// Forbidden - Authentication successful but insufficient permissions
-type GetModelResponseX403 struct {
-	// Error data for ForbiddenResponse
-	Error              GetModelResponseX403Error `json:"error" yaml:"error"`
-	OpenrouterMetadata *map[string]any           `json:"openrouter_metadata" yaml:"openrouter_metadata"`
-	UserId             *string                   `json:"user_id" yaml:"user_id"`
-}
-
-// Error data for ForbiddenResponse
-type GetModelResponseX403Error struct {
-	Code     int64           `json:"code" yaml:"code"`
-	Message  string          `json:"message" yaml:"message"`
-	Metadata *map[string]any `json:"metadata" yaml:"metadata"`
-}
-
-// Not Found - Resource does not exist
-type GetModelResponseX404 struct {
-	// Error data for NotFoundResponse
-	Error              GetModelResponseX404Error `json:"error" yaml:"error"`
-	OpenrouterMetadata *map[string]any           `json:"openrouter_metadata" yaml:"openrouter_metadata"`
-	UserId             *string                   `json:"user_id" yaml:"user_id"`
-}
-
-// Error data for NotFoundResponse
-type GetModelResponseX404Error struct {
-	Code     int64           `json:"code" yaml:"code"`
-	Message  string          `json:"message" yaml:"message"`
-	Metadata *map[string]any `json:"metadata" yaml:"metadata"`
-}
-
-// Internal Server Error - Unexpected server error
-type GetModelResponseX500 struct {
-	// Error data for InternalServerResponse
-	Error              GetModelResponseX500Error `json:"error" yaml:"error"`
-	OpenrouterMetadata *map[string]any           `json:"openrouter_metadata" yaml:"openrouter_metadata"`
-	UserId             *string                   `json:"user_id" yaml:"user_id"`
-}
-
-// Error data for InternalServerResponse
-type GetModelResponseX500Error struct {
-	Code     int64           `json:"code" yaml:"code"`
-	Message  string          `json:"message" yaml:"message"`
-	Metadata *map[string]any `json:"metadata" yaml:"metadata"`
 }

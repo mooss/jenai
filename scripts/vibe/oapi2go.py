@@ -50,35 +50,12 @@ class IR:
     aliases: list[IRAlias] = field(default_factory=list)
 
 
-_GO_KEYWORDS = frozenset(
-    {
-        "break",
-        "default",
-        "func",
-        "interface",
-        "select",
-        "case",
-        "defer",
-        "go",
-        "map",
-        "struct",
-        "chan",
-        "else",
-        "goto",
-        "package",
-        "switch",
-        "const",
-        "fallthrough",
-        "if",
-        "range",
-        "type",
-        "continue",
-        "for",
-        "import",
-        "return",
-        "var",
-    }
-)
+_GO_KEYWORDS = frozenset({
+    "break", "default", "func", "interface", "select", "case", "defer", "go", "map", "struct",
+    "chan", "else", "goto", "package", "switch", "const", "fallthrough", "if", "range", "type",
+    "continue", "for", "import", "return",
+    "var",
+})
 
 
 def camel_name(value: str) -> str:
@@ -118,7 +95,7 @@ def schema_types(schema: dict[str, Any]) -> list[str]:
     return value if isinstance(value, list) else [value]
 
 
-def compile_ir(document: dict[str, Any]) -> IR:
+def compile_ir(document: dict[str, Any], keep: re.Pattern[str] | None = None) -> IR:
     ir = IR()
     alias_sources: dict[str, str] = {}
 
@@ -191,7 +168,11 @@ def compile_ir(document: dict[str, Any]) -> IR:
                 return inferred
         return IRType("any", nullable)
 
-    def add_root(schema: dict[str, Any], name: str, fallback_doc: str = "") -> None:
+    def add_root(
+        schema: dict[str, Any], name: str, fallback_doc: str = "", path: str = ""
+    ) -> None:
+        if keep is not None and not keep.search(path):
+            return
         result = compile_schema(schema, name)
         if result.kind != "object":
             alias_name = camel_name(name)
@@ -239,7 +220,7 @@ def compile_ir(document: dict[str, Any]) -> IR:
                     part for part in (schema_doc, fallback) if part
                 )
 
-    operations: list[tuple[str, dict[str, Any]]] = []
+    operations: list[tuple[str, dict[str, Any], str]] = []
     methods = {"get", "put", "post", "delete", "options", "head", "patch", "trace"}
 
     if isinstance(document.get("paths"), dict):
@@ -249,14 +230,16 @@ def compile_ir(document: dict[str, Any]) -> IR:
             for method, operation in path_item.items():
                 if method.lower() in methods and isinstance(operation, dict):
                     operation_name = operation.get("operationId") or method + path
-                    operations.append((camel_name(operation_name), operation))
+                    operations.append(
+                        (camel_name(operation_name), operation, f"paths.{path}.{method}")
+                    )
     else:
         for method, operation in document.items():
             if method.lower() in methods and isinstance(operation, dict):
                 operation_name = operation.get("operationId") or method
-                operations.append((camel_name(operation_name), operation))
+                operations.append((camel_name(operation_name), operation, method))
 
-    for operation_name, operation in operations:
+    for operation_name, operation, operation_path in operations:
         for status, response in operation.get("responses", {}).items():
             if not isinstance(response, dict):
                 continue
@@ -271,13 +254,14 @@ def compile_ir(document: dict[str, Any]) -> IR:
                     schema,
                     operation_name + "Response" + status_name,
                     str(response.get("description", "")),
+                    path=operation_path + ".responses." + status,
                 )
 
     components = document.get("components", {}).get("schemas", {})
     if isinstance(components, dict):
         for name, schema in components.items():
             if isinstance(schema, dict):
-                add_root(schema, name)
+                add_root(schema, name, path=f"components.schemas.{name}")
 
     return ir
 
@@ -366,6 +350,15 @@ def render(ir: IR, package: str, argv: list[str]) -> str:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--package", required=True, help="Go package name")
+    parser.add_argument(
+        "--keep",
+        help=(
+            "regular expression selecting which input JSON paths to keep "
+            "(e.g. '^paths\\./models\\.get\\.responses\\.200'); "
+            "top-level roots whose JSON path does not match are skipped, "
+            "along with all schemas nested inside them"
+        ),
+    )
     args = parser.parse_args()
 
     if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", args.package):
@@ -378,9 +371,10 @@ def main() -> int:
         if not isinstance(document, dict):
             raise ValueError("the JSON document must be an object")
         reject_refs(document)
-        ir = compile_ir(document)
+        keep = re.compile(args.keep) if args.keep else None
+        ir = compile_ir(document, keep)
         sys.stdout.write(render(ir, args.package, sys.argv))
-    except (json.JSONDecodeError, ValueError, TypeError) as exc:
+    except (json.JSONDecodeError, ValueError, TypeError, re.error) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 1
     return 0
