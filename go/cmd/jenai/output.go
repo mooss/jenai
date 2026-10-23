@@ -78,6 +78,14 @@ func newDisplay(qry *config.Query, teeFile, thoughtlessFile *utils.TeeFile) *dis
 	}
 }
 
+func outputMarkdownString(content string) error {
+	output := highlight.NewMarkdownStreamer(os.Stdout, "pygments", terminalColorEnabled(os.Stdout))
+	if err := output.Write(content); err != nil {
+		return err
+	}
+	return output.Flush()
+}
+
 func (d *display) onReasoning(s string) {
 	if d.teeFile.IsOpen() {
 		d.teeThink.open(func() { d.teeFile.Write("<think>\n") })
