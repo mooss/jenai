@@ -67,15 +67,52 @@ def camel_name(value: str) -> str:
         result = "X" + result
     return result
 
+def flatten_all_of(schema: dict[str, Any]) -> dict[str, Any]:
+    """Spread allOf members over the schema and their relevant properties."""
+    parts = schema.get("allOf")
+    if not isinstance(parts, list) or not all(isinstance(part, dict) for part in parts):
+        return schema
+
+    result: dict[str, Any] = {}
+    for part in [*parts, {key: value for key, value in schema.items() if key != "allOf"}]:
+        part = flatten_all_of(part)
+        for key, value in part.items():
+            if key == "properties":
+                properties = dict(result.get("properties", {}))
+                for name, property_schema in value.items():
+                    if name in properties:
+                        property_schema = flatten_all_of({
+                            "allOf": [properties[name] or {}, property_schema or {}],
+                        })
+                    properties[name] = property_schema
+                result[key] = properties
+            elif key == "required":
+                result[key] = list(dict.fromkeys([*result.get(key, []), *value]))
+            elif key == "description" and not value:
+                continue
+            else:
+                result[key] = value
+    return result
+
+
 def descriptions(schema: dict[str, Any]) -> str:
+    schema = flatten_all_of(schema)
     lines = [str(schema["description"])] if schema.get("description") else []
+
     for keyword in ("allOf", "oneOf", "anyOf"):
-        if keyword in schema:
-            # This might not always be this exact layout, sorry if it crashes:
-            parts = schema[keyword]
-            lines.append(parts[1]['description']) # Textual description.
-            lines.append(f"{keyword} composition:")
-            lines.extend(json.dumps(parts[0], indent=2).splitlines()) # allOf/oneOf/anyOf spec.
+        parts = schema.get(keyword)
+        if not isinstance(parts, list):
+            continue
+
+        if len(parts) > 1 and isinstance(parts[1], dict):
+            description = parts[1].get("description")
+            if description:
+                lines.append(str(description))
+
+        lines.append(f"{keyword} composition:")
+        if parts:
+            lines.extend(json.dumps(parts[0], indent=2).splitlines())
+
     return "\n".join(lines)
 
 
@@ -100,6 +137,7 @@ def compile_ir(document: dict[str, Any], keep: re.Pattern[str] | None = None) ->
     alias_sources: dict[str, str] = {}
 
     def compile_schema(schema: dict[str, Any], hint: str) -> IRType:
+        schema = flatten_all_of(schema)
         types = schema_types(schema)
         nullable = bool(schema.get("nullable")) or "null" in types
         non_null_types = [value for value in types if value != "null"]

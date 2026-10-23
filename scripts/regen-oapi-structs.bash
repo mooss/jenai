@@ -54,3 +54,4 @@ function gen-or() {
 
 ensure-resolved
 gen-or '.paths["/model/{author}/{slug}"]' model.go --keep 200
+gen-or '.paths["/models/{author}/{slug}/endpoints"]' models-endpoints.go --keep 200

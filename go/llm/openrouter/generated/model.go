@@ -197,25 +197,6 @@ type GetModelResponseX200DataPricingOverridesItem struct {
 // Reasoning effort configuration. Omitted for non-reasoning models and dynamic router models.
 type GetModelResponseX200DataReasoning struct {
 	// Default reasoning effort when the client enables reasoning without specifying effort. Maps to `reasoning.effort` in chat requests. When `"none"`, prefer omitting effort unless the user explicitly disables reasoning.
-	// allOf composition:
-	// {
-	//   "enum": [
-	//     "max",
-	//     "xhigh",
-	//     "high",
-	//     "medium",
-	//     "low",
-	//     "minimal",
-	//     "none",
-	//     null
-	//   ],
-	//   "example": "medium",
-	//   "type": [
-	//     "string",
-	//     "null"
-	//   ],
-	//   "x-speakeasy-unknown-values": "allow"
-	// }
 	DefaultEffort *string `json:"default_effort" yaml:"default_effort"`
 	// Default reasoning enabled state when the client does not set `reasoning.enabled`.
 	DefaultEnabled *bool `json:"default_enabled" yaml:"default_enabled"`
