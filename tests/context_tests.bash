@@ -21,7 +21,7 @@ echo "nested content" > "$TMP_DIR/testdir/nested.txt"
 # Tests #
 # Single file inclusion.
 echo -e "\nTEST: Single file context"
-output=$(run --file "$TMP_DIR/testdir/file1.txt")
+output=$(run --read "$TMP_DIR/testdir/file1.txt")
 echo "$output" | grep -q "====> START OF $TMP_DIR/testdir/file1.txt" || {
     echo "Single file context failed"
     exit 1
@@ -29,7 +29,7 @@ echo "$output" | grep -q "====> START OF $TMP_DIR/testdir/file1.txt" || {
 
 # Multiple files.
 echo -e "\nTEST: Multiple file context"
-output=$(run --file "$TMP_DIR/testdir/file1.txt" "$TMP_DIR/testdir/file2.txt")
+output=$(run --read "$TMP_DIR/testdir/file1.txt" "$TMP_DIR/testdir/file2.txt")
 echo "$output" | grep -q "file1 content" || {
     echo "File1 content missing"
     exit 1
@@ -41,7 +41,7 @@ echo "$output" | grep -q "file2 content" || {
 
 # Directory inclusion.
 echo -e "\nTEST: Directory context"
-output=$(run --dir "$TMP_DIR/testdir")
+output=$(run --read-dir "$TMP_DIR/testdir")
 echo "$output" | grep -q "nested content" || {
     echo "Directory context missing nested file"
     exit 1
@@ -49,8 +49,8 @@ echo "$output" | grep -q "nested content" || {
 
 # Context placement (above/below).
 echo -e "\nTEST: Context placement"
-output_above=$(run --context-above --dir "$TMP_DIR/testdir")
-output_below=$(run --file "$TMP_DIR/testdir/file1.txt")
+output_above=$(run --context-above --read-dir "$TMP_DIR/testdir")
+output_below=$(run --read "$TMP_DIR/testdir/file1.txt")
 
 if ! echo "$output_above" | head -n1 | grep -q "^## Additional context"; then
     echo "Context above failed"

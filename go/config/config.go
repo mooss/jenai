@@ -52,10 +52,10 @@ func (qry *Query) BindFlags() *flag.Parser {
 	flags.Positional(&qry.Positional)
 	flags.Bool("context-above", &qry.Context.Above,
 		"Put context files and dir above instructions")
-	flags.StringSlice("dir", &qry.Context.Dirs, "Include all files in directory as context")
+	flags.StringSlice("read-dir", &qry.Context.Dirs, "Include all files in directory as context")
 	flags.Bool("dry-run", &qry.DryRun, "Print interpolated prompt without sending to LLM").
 		Alias("n")
-	flags.StringSlice("file", &qry.Context.Files, "Include specific file(s) as context")
+	flags.StringSlice("read", &qry.Context.Files, "Include specific file(s) as context")
 	flags.Bool("linum", &qry.Context.LineNumbers, "Print files with line numbers")
 	flags.String(
 		"model", &qry.Model, "Model name (short name from `model-zoo` or provider:author/model)",

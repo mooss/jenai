@@ -12,7 +12,7 @@ jenai p review_staged --model sol
 
 Edit a file following pre-written guidelines:
 #+begin_src bash :eval never
-jenai edit Fix to fit the guidelines --file guidelines.md --write main.py
+jenai edit Fix to fit the guidelines --read guidelines.md --write main.py
 #+end_src
 
 Query info from documentation in clipboard and hide reasoning:
@@ -22,7 +22,7 @@ jenai o 'What exactly is a pipeline in this context?' --paste --thoughtless
 
 Generate the description of this repo:
 #+begin_src bash :results raw :exports both :wrap example :eval never
-jenai o Create a short one line description of this project for GitHub --file go/cmd/jenai/main.go --thoughtless
+jenai o Create a short one line description of this project for GitHub --read go/cmd/jenai/main.go --thoughtless
 #+end_src
 
 #+RESULTS:
@@ -96,8 +96,8 @@ The completion commands (=oneshot=, =prompt= and =edit=) use common flags to con
 
 *** Context
 
- - =--file= :: adds files.
- - =--dir= :: adds all files below the dirs.
+ - =--read= :: adds files.
+ - =--read-dir= :: adds directories.
  - =--linum= :: includes line numbers.
  - =--paste= :: adds content of clipboard.
 
