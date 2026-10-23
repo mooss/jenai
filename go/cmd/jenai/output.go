@@ -4,7 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
@@ -78,12 +80,36 @@ func newDisplay(qry *config.Query, teeFile, thoughtlessFile *utils.TeeFile) *dis
 	}
 }
 
-func outputMarkdownString(content string) error {
-	output := highlight.NewMarkdownStreamer(os.Stdout, "pygments", sysu.TerminalColorEnabled())
-	if err := output.Write(content); err != nil {
-		return err
+// renderAndDisplayMarkdown renders Markdown content with syntax highlighting and displays it.
+//
+// If both stdout are connected to a terminal, the rendered content is streamed to less.
+func renderAndDisplayMarkdown(content string) error {
+	render := func(writer io.Writer) error {
+		output := highlight.NewMarkdownStreamer(writer, "pygments", sysu.TerminalColorEnabled())
+		if err := output.Write(content); err != nil {
+			return err
+		}
+		return output.Flush()
 	}
-	return output.Flush()
+
+	if !sysu.IsTerminal(os.Stdout) {
+		return render(os.Stdout)
+	}
+
+	pager := exec.CommandContext(context.Background(), "less", "-R")
+	pager.Stderr = os.Stderr
+
+	pagerStdin, err := pager.StdinPipe()
+	if err != nil {
+		return render(os.Stdout)
+	}
+
+	pager.Stdout = os.Stdout
+	if err := pager.Start(); err != nil {
+		return render(os.Stdout)
+	}
+
+	return errors.Join(render(pagerStdin), pagerStdin.Close(), pager.Wait())
 }
 
 func (d *display) onReasoning(s string) {

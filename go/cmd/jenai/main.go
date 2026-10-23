@@ -203,7 +203,7 @@ func runWithHooks(
 	}
 
 	if qry.DryRun {
-		return outputMarkdownString(prompt.String())
+		return renderAndDisplayMarkdown(prompt.String())
 	}
 
 	if prompt.Empty() {
