@@ -30,6 +30,242 @@ def camel_name(value: str) -> str:
     return result
 
 
+#######################
+# OpenAPI dataclasses #
+
+@dataclass
+class Reference:
+    ref: str
+    summary: str | None = None
+    description: str | None = None
+
+
+@dataclass
+class Contact:
+    name: str | None = None
+    url: str | None = None
+    email: str | None = None
+
+
+@dataclass
+class License:
+    name: str
+    identifier: str | None = None
+    url: str | None = None
+
+
+@dataclass
+class Info:
+    title: str
+    version: str
+    summary: str | None = None
+    description: str | None = None
+    terms_of_service: str | None = None
+    contact: Contact | None = None
+    license: License | None = None
+
+
+@dataclass
+class ServerVariable:
+    enum: list[str] | None = None
+    default: str = ""
+    description: str | None = None
+
+
+@dataclass
+class Server:
+    url: str
+    description: str | None = None
+    variables: dict[str, ServerVariable] | None = None
+
+
+@dataclass
+class Tag:
+    name: str
+    description: str | None = None
+    external_docs: dict[str, str] | None = None
+
+
+@dataclass
+class ExternalDocumentation:
+    url: str
+    description: str | None = None
+
+
+@dataclass
+class Schema:
+    ref: str | None = None
+    title: str | None = None
+    description: str | None = None
+    type: str | list[str] | None = None
+    format: str | None = None
+    properties: dict[str, Schema] | None = None
+    items: Schema | None = None
+    additional_properties: bool | Schema | None = None
+    all_of: list[Schema] | None = None
+    one_of: list[Schema] | None = None
+    any_of: list[Schema] | None = None
+    not_schema: Schema | None = None
+    enum: list[Any] | None = None
+    required: list[str] | None = None
+    nullable: bool | None = None
+    default: Any = None
+    example: Any = None
+    examples: dict[str, Any] | None = None
+    minimum: int | float | None = None
+    maximum: int | float | None = None
+    exclusive_minimum: int | float | bool | None = None
+    exclusive_maximum: int | float | bool | None = None
+    min_length: int | None = None
+    max_length: int | None = None
+    pattern: str | None = None
+    min_items: int | None = None
+    max_items: int | None = None
+    unique_items: bool | None = None
+    min_properties: int | None = None
+    max_properties: int | None = None
+    deprecated: bool | None = None
+    read_only: bool | None = None
+    write_only: bool | None = None
+    extensions: dict[str, Any] | None = None
+
+
+@dataclass
+class Example:
+    summary: str | None = None
+    description: str | None = None
+    value: Any = None
+    external_value: str | None = None
+
+
+@dataclass
+class Encoding:
+    content_type: str | None = None
+    headers: dict[str, "Header"] | None = None
+    style: str | None = None
+    explode: bool | None = None
+    allow_reserved: bool | None = None
+
+
+@dataclass
+class MediaType:
+    schema: Schema | Reference | None = None
+    example: Any = None
+    examples: dict[str, Example | Reference] | None = None
+    encoding: dict[str, Encoding] | None = None
+
+
+@dataclass
+class Header:
+    description: str | None = None
+    required: bool | None = None
+    deprecated: bool | None = None
+    style: str | None = None
+    explode: bool | None = None
+    schema: Schema | Reference | None = None
+    example: Any = None
+    examples: dict[str, Example | Reference] | None = None
+    content: dict[str, MediaType] | None = None
+
+
+@dataclass
+class Parameter:
+    name: str
+    location: str
+    description: str | None = None
+    required: bool | None = None
+    deprecated: bool | None = None
+    allow_empty_value: bool | None = None
+    style: str | None = None
+    explode: bool | None = None
+    allow_reserved: bool | None = None
+    schema: Schema | Reference | None = None
+    example: Any = None
+    examples: dict[str, Example | Reference] | None = None
+    content: dict[str, MediaType] | None = None
+
+
+@dataclass
+class RequestBody:
+    description: str | None = None
+    content: dict[str, MediaType] | None = None
+    required: bool | None = None
+
+
+@dataclass
+class Response:
+    description: str
+    headers: dict[str, Header | Reference] | None = None
+    content: dict[str, MediaType] | None = None
+    links: dict[str, Any] | None = None
+
+
+@dataclass
+class SecurityRequirement:
+    schemes: dict[str, list[str]]
+
+
+@dataclass
+class Operation:
+    responses: dict[str, Response | Reference]
+    tags: list[str] | None = None
+    summary: str | None = None
+    description: str | None = None
+    external_docs: ExternalDocumentation | None = None
+    operation_id: str | None = None
+    parameters: list[Parameter | Reference] | None = None
+    request_body: RequestBody | Reference | None = None
+    callbacks: dict[str, Any] | None = None
+    deprecated: bool | None = None
+    security: list[SecurityRequirement] | None = None
+    servers: list[Server] | None = None
+    extensions: dict[str, Any] | None = None
+
+
+@dataclass
+class PathItem:
+    ref: str | None = None
+    summary: str | None = None
+    description: str | None = None
+    get: Operation | None = None
+    put: Operation | None = None
+    post: Operation | None = None
+    delete: Operation | None = None
+    options: Operation | None = None
+    head: Operation | None = None
+    patch: Operation | None = None
+    trace: Operation | None = None
+    servers: list[Server] | None = None
+    parameters: list[Parameter | Reference] | None = None
+    extensions: dict[str, Any] | None = None
+
+
+@dataclass
+class Components:
+    schemas: dict[str, Schema | Reference] | None = None
+    responses: dict[str, Response | Reference] | None = None
+    parameters: dict[str, Parameter | Reference] | None = None
+    examples: dict[str, Example | Reference] | None = None
+    request_bodies: dict[str, RequestBody | Reference] | None = None
+    headers: dict[str, Header | Reference] | None = None
+    security_schemes: dict[str, Any] | None = None
+    links: dict[str, Any] | None = None
+    callbacks: dict[str, Any] | None = None
+
+
+@dataclass
+class OpenAPIDocument:
+    openapi: str
+    info: Info
+    paths: dict[str, PathItem]
+    json_schema_dialect: str | None = None
+    servers: list[Server] | None = None
+    components: Components | None = None
+    security: list[SecurityRequirement] | None = None
+    tags: list[Tag] | None = None
+    external_docs: ExternalDocumentation | None = None
+
+
 #################
 # walk function #
 
