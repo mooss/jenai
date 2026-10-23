@@ -12,12 +12,23 @@ Return only one or more seek/substitute blocks in the exact format below.
 Do not include anything but those seek/substitute blocks.
 Use only file paths from the EDITABLE FILES section.
 
-FILE-PATH
+FILE PATH
 ` + "```language" + `
 %s
 SEEK CONTENT
 %s
 REPLACEMENT CONTENT
+%s
+` + "```" + `
+
+For instance:
+
+go/flag/parser.go
+` + "```go" + `
+%s
+			dest = &par.Positional
+%s
+			dest = &par.positional
 %s
 ` + "```" + `
 
@@ -32,7 +43,11 @@ func buildEditPrompt(qry *config.Query, writeFiles []string) (config.Prompt, err
 		return config.Prompt{}, err
 	}
 
-	instructions := fmt.Sprintf(editPromptText, seekMarker, separatorMarker, substituteMarker)
+	instructions := fmt.Sprintf(
+		editPromptText,
+		seekMarker, separatorMarker, substituteMarker,
+		seekMarker, separatorMarker, substituteMarker,
+	)
 	prompt.Primary = instructions
 	context := config.Context{Files: writeFiles, Title: "EDITABLE FILES"}
 

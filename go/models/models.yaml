@@ -9,7 +9,7 @@ models:
         - high
         - low
         - none
-      default_effort: high
+      default_effort: low
   ds-pro:
     provider: openrouter
     author: ~deepseek

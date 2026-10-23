@@ -124,25 +124,29 @@ func buildReasoningSpec(
 	spec models.Spec, modelResponse openrouter.GetModelResponse,
 ) *models.ReasoningSpec {
 	var res *models.ReasoningSpec
-	if reasoning := modelResponse.Data.Reasoning; reasoning != nil {
-		updated := &models.ReasoningSpec{DefaultEffort: fun.ZeroDeref(reasoning.DefaultEffort)}
-		if reasoning.SupportedEfforts == nil {
-			updated.SupportedEfforts = strings.Split("max xhigh high medium low minimal", " ")
-			if !reasoning.Mandatory {
-				updated.SupportedEfforts = append(updated.SupportedEfforts, "none")
-			}
-		} else {
-			updated.SupportedEfforts = lie.MapFilter(fun.Identity, *reasoning.SupportedEfforts)
-		}
-
-		customDefault := fun.ZeroDeref(spec.Reasoning).DefaultEffort
-		if customDefault != "" && slices.Contains(updated.SupportedEfforts, customDefault) {
-			updated.DefaultEffort = customDefault // Maintain the custom default.
-		}
-
-		if len(updated.SupportedEfforts) > 0 || updated.DefaultEffort != "" {
-			res = updated
-		}
+	reasoning := modelResponse.Data.Reasoning
+	if reasoning == nil {
+		return res
 	}
+
+	updated := &models.ReasoningSpec{DefaultEffort: fun.ZeroDeref(reasoning.DefaultEffort)}
+	if reasoning.SupportedEfforts == nil {
+		updated.SupportedEfforts = strings.Split("max xhigh high medium low minimal", " ")
+		if !reasoning.Mandatory {
+			updated.SupportedEfforts = append(updated.SupportedEfforts, "none")
+		}
+	} else {
+		updated.SupportedEfforts = lie.MapFilter(fun.Identity, *reasoning.SupportedEfforts)
+	}
+
+	customDefault := fun.ZeroDeref(spec.Reasoning).DefaultEffort
+	if customDefault != "" && slices.Contains(updated.SupportedEfforts, customDefault) {
+		updated.DefaultEffort = customDefault // Maintain the custom default.
+	}
+
+	if len(updated.SupportedEfforts) > 0 || updated.DefaultEffort != "" {
+		res = updated
+	}
+
 	return res
 }
