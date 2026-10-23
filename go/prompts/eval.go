@@ -46,7 +46,7 @@ func (ctx *EvalContext) functions() template.FuncMap {
 
 		"ins":  ctx.instruction,
 		"per":  ctx.persona,
-		"sec1": ctx.section1,
+		"sec2": ctx.section2,
 
 		"consume_args": ctx.consumeArgs,
 	}
@@ -139,7 +139,7 @@ func (ctx *EvalContext) persona(name string, args ...any) (string, error) {
 		return "", fmt.Errorf("unknown persona: %s", name)
 	}
 
-	return ctx.execute("# Persona\n\n"+content, args)
+	return ctx.execute("## Persona\n\n"+content, args)
 }
 
 // instruction returns the instruction template with the given name.
@@ -149,12 +149,12 @@ func (ctx *EvalContext) instruction(name string, args ...any) (string, error) {
 		return "", fmt.Errorf("unknown instruction: %s", name)
 	}
 
-	return ctx.execute("# Instructions\n\n"+content, args)
+	return ctx.execute("## Instructions\n\n"+content, args)
 }
 
-// section1 returns the section1 template with the given name and arguments.
-func (ctx *EvalContext) section1(name string, args ...any) (string, error) {
-	content, exists := ctx.Section1[name]
+// section2 returns the section2 template with the given name and arguments.
+func (ctx *EvalContext) section2(name string, args ...any) (string, error) {
+	content, exists := ctx.Section2[name]
 	if !exists {
 		return "", fmt.Errorf("unknown section1: %s", name)
 	}

@@ -10,7 +10,7 @@ prompts:
 
     {{ ins "commit_msg" }}
 
-    {{ sec1 "git_diff" "--staged" }}
+    {{ sec2 "git_diff" "--staged" }}
 
   project_graph: |-
     {{ ins "idea_graph" }}
@@ -22,14 +22,14 @@ prompts:
 
     {{ ins "review_diff" }}
 
-    {{ sec1 "git_diff" "--staged" }}
+    {{ sec2 "git_diff" "--staged" }}
 
   review_previous_commit: |-
     {{ per "jaded_dev" }}
 
     {{ ins "review_diff" }}
 
-    {{ sec1 "git_diff" "HEAD^" "HEAD" }}
+    {{ sec2 "git_diff" "HEAD^" "HEAD" }}
 
   review_code: |-
     {{ per "jaded_dev" }}
@@ -41,13 +41,13 @@ prompts:
 
     {{ ins "dev_steps" }}
 
-    # Task
+    ## Task
     {{ consume_args | join " " }}
 
   archi: |-
     {{ ins "archi" }}
 
-    # Instructions
+    ## Instructions
     {{ consume_args | join " " }}
 
 
@@ -104,7 +104,7 @@ prompts:
 ############
 # Personas #
 ############
-# Rendered with `per` and prefixed by `# Persona`.
+# Rendered with `per` and prefixed by `## Persona`.
 
 personas:
   jaded_dev: |-
@@ -120,7 +120,7 @@ personas:
 ################
 # Instructions #
 ################
-# Rendered with `ins` and prefixed by `# Instructions`.
+# Rendered with `ins` and prefixed by `## Instructions`.
 
 instructions:
   commit_msg: |-
@@ -168,7 +168,7 @@ instructions:
     Let's do this iteratively and not go into the details, we want to create a flexible outline than can later be refined in a just-in-time manner.
     Remember, only one question at a time.
 
-    # Idea
+    ## Idea
 
   review_code: |-
     Review the provided code and focus ONLY on:
@@ -266,21 +266,21 @@ instructions:
     Now analyze the complex development task and provide your step-by-step implementation plan following the exact format specified above.
 
   archi: |-
-    # Persona
+    ## Persona
     You are a senior software architect with expertise in clean architecture principles, functional programming paradigms, and data-driven design patterns. Your task is to create comprehensive architectural specifications for a software project that emphasizes orthogonality, simplicity, data-driven design, and functional programming.
 
-    # Outcome
+    ## Outcome
     You are designing specifications that will be handed to a senior programmer for implementation. The specifications must be detailed enough to guide architectural decisions but should avoid implementation-specific details like specific libraries, frameworks, or code syntax.
 
-    # Task
+    ## Task
     Generate a complete architectural specification document that includes:
 
-    ## 1. Architecture Overview
+    ### 1. Architecture Overview
     - High-level system architecture diagram (described in text)
     - Core architectural principles and their rationale
     - System boundaries and external interfaces
 
-    ## 2. Layer Definitions
+    ### 2. Layer Definitions
     Define each architectural layer with:
     - **Purpose and responsibilities**
     - **Dependencies** (what it depends on and what depends on it)
@@ -293,35 +293,35 @@ instructions:
     - Infrastructure layer (external concerns)
     - Presentation layer (user interfaces)
 
-    ## 3. Functional Programming Constraints
+    ### 3. Functional Programming Constraints
     Specify requirements for:
     - **Immutability patterns** - where and how data should remain immutable
     - **Pure function requirements** - which components must be side-effect free
     - **Function composition strategies** - how complex operations should be built
     - **Error handling approaches** - functional error management patterns
 
-    ## 4. Data-Driven Design Specifications
+    ### 4. Data-Driven Design Specifications
     Define:
     - **Data structure standards** - how data should be modeled and transformed
     - **Configuration-driven behavior** - what should be configurable vs. hardcoded
     - **Data transformation pipelines** - how data flows and transforms through the system
     - **Schema evolution strategies** - how data structures can change over time
 
-    ## 5. Orthogonality Requirements
+    ### 5. Orthogonality Requirements
     Specify:
     - **Separation of concerns** - clear boundaries between different responsibilities
     - **Dependency inversion patterns** - how to avoid tight coupling
     - **Interface abstractions** - what should be abstracted and how
     - **Module independence criteria** - how modules should interact minimally
 
-    ## 6. Simplicity Guidelines
+    ### 6. Simplicity Guidelines
     Establish rules for:
     - **Complexity boundaries** - where complexity is acceptable vs. should be avoided
     - **Abstraction levels** - appropriate levels of abstraction for different components
     - **Interface design principles** - keeping interfaces minimal and focused
     - **Code organization patterns** - how to structure modules and namespaces
 
-    # Output Format
+    ## Output Format
     Structure your response as a formal specification document with:
     - Executive summary (2-3 paragraphs)
     - Detailed sections for each area above
@@ -329,7 +329,7 @@ instructions:
     - Bullet points for specific requirements
     - Rationale explanations for key architectural decisions
 
-    # Constraints
+    ## Constraints
     - Do NOT include specific technology choices (languages, frameworks, databases)
     - Do NOT provide code examples or implementation details
     - Do NOT make assumptions about the specific domain or business requirements
@@ -340,20 +340,20 @@ instructions:
     Think through each architectural decision step-by-step, explaining how it supports the core principles before presenting your final specification.
 
 #######################
-# Sections of level 1 #
+# Sections of level 2 #
 #######################
-# Rendered by `sec1`.
+# Rendered by `sec2`.
 
-section1:
+section2:
   git_diff: |-
-    # Diff
+    ## Diff
 
-    ## How to read
+    ### How to read
 
     Lines starting with `-` are present in the original file but removed in the new version.
     Lines starting with `+` are added in the new version.
     Lines starting with a space are unchanged context lines present in both versions.
 
-    ## Diff included below
+    ### Diff included below
 
     {{ git (strings "diff" .) }}

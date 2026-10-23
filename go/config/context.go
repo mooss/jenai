@@ -44,7 +44,7 @@ func (c *Context) Build() (string, []string, error) {
 	if title == "" {
 		title = "Additional context (files)"
 	}
-	buf.WriteString("# ")
+	buf.WriteString("## ")
 	buf.WriteString(title)
 
 	for path, err := range c.allPaths {

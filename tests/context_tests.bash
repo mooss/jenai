@@ -52,12 +52,12 @@ echo -e "\nTEST: Context placement"
 output_above=$(run --context-above --dir "$TMP_DIR/testdir")
 output_below=$(run --file "$TMP_DIR/testdir/file1.txt")
 
-if ! echo "$output_above" | head -n1 | grep -q "^# Additional context"; then
+if ! echo "$output_above" | head -n1 | grep -q "^## Additional context"; then
     echo "Context above failed"
     exit 1
 fi
 
-if ! echo "$output_below" | tail -n8 | grep -q "^# Additional context"; then
+if ! echo "$output_below" | tail -n8 | grep -q "^## Additional context"; then
     echo "Context below failed"
     exit 1
 fi

@@ -15,7 +15,7 @@ type Library struct {
 	Prompts      map[string]string `yaml:"prompts"`
 	Personas     map[string]string `yaml:"personas"`
 	Instructions map[string]string `yaml:"instructions"`
-	Section1     map[string]string `yaml:"section1"`
+	Section2     map[string]string `yaml:"section2"`
 }
 
 var Embedded = utils.OnceErr(loader(EmbeddedBytes))

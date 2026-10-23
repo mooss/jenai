@@ -67,7 +67,7 @@ func TestGettersAndEvaluators(t *testing.T) {
 
 	evalTest(eval.persona, "persona", "jaded_dev")
 	evalTest(eval.instruction, "instruction", "commit_msg")
-	evalTest(eval.section1, "section1", "git_diff")
+	evalTest(eval.section2, "section1", "git_diff")
 }
 
 func TestTemplateFunctions(t *testing.T) {
