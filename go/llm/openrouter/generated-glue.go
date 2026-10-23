@@ -14,6 +14,7 @@ import (
 )
 
 type GetModelResponse = generated.GetModelResponseX200
+type ListEndpointsResponse = generated.ListEndpointsResponseX200
 
 // Headers contains the optional app-identification headers for an operation.
 type Headers struct {

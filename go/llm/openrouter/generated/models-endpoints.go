@@ -1,7 +1,7 @@
-// Generated with arguments: ["../scripts/vibe/oapi2go.py", "--package", "generated", "--keep", "200"]
-//
 //revive:disable:var-naming,line-length-limit
 package generated
+
+// Generated with arguments: ["../scripts/vibe/oapi2go.py", "--package", "generated", "--keep", "200"]
 
 // Returns a list of endpoints
 type ListEndpointsResponseX200 struct {

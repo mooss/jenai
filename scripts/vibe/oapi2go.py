@@ -388,10 +388,9 @@ def render(ir: IR, package: str, argv: list[str]) -> str:
         seen_structs[alias.name] = alias.name
 
     output = [
-        "// Generated with arguments: "
-        + json.dumps(argv, ensure_ascii=False),
         "//revive:disable:var-naming,line-length-limit",
         f"package {package}",
+        "// Generated with arguments: " + json.dumps(argv, ensure_ascii=False),
     ]
 
     for struct in ir.structs:
