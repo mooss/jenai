@@ -4,7 +4,7 @@ go 1.27.2
 
 require (
 	github.com/alecthomas/chroma v0.10.0
-	github.com/mooss/bagend v0.0.0-20261023122744-bfaeb7b462cf
+	github.com/mooss/bagend v0.0.0-20261024130455-3853b2e56421
 	gopkg.in/yaml.v3 v3.0.1
 )
 
