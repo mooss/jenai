@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/mooss/bagend/go/sysu"
+	"github.com/mooss/jenai/go/highlight"
 	"github.com/mooss/jenai/go/utils"
 
 	"gopkg.in/yaml.v3"
@@ -28,7 +30,12 @@ func pretty(data any) string {
 }
 
 func prettyPrint(data any) {
-	fmt.Print(pretty(data))
+	formatted := pretty(data)
+	if sysu.TerminalColorEnabled() {
+		formatted = highlight.Highlight("yaml", formatted)
+	}
+
+	fmt.Print(formatted)
 }
 
 func structToMap(data any) (map[string]any, error) {

@@ -23,10 +23,10 @@ type MarkdownStreamer struct {
 	colorEnabled bool
 }
 
-func NewMarkdownStreamer(writer io.Writer, styleName string, colorEnabled bool) *MarkdownStreamer {
+func NewMarkdownStreamer(writer io.Writer, colorEnabled bool) *MarkdownStreamer {
 	return &MarkdownStreamer{
 		writer:       writer,
-		styleName:    styleName,
+		styleName:    DefaultStyle,
 		colorEnabled: colorEnabled,
 	}
 }

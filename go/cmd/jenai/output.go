@@ -72,8 +72,8 @@ func newDisplay(qry *config.Query, teeFile, thoughtlessFile *utils.TeeFile) *dis
 	color := sysu.TerminalColorEnabled()
 	return &display{
 		qry:             qry,
-		output:          highlight.NewMarkdownStreamer(os.Stdout, "pygments", color),
-		reasoningOutput: highlight.NewMarkdownStreamer(os.Stdout, "pygments", color),
+		output:          highlight.NewMarkdownStreamer(os.Stdout, color),
+		reasoningOutput: highlight.NewMarkdownStreamer(os.Stdout, color),
 		teeFile:         teeFile,
 		thoughtlessFile: thoughtlessFile,
 		endsWithNewline: true, // True by default to avoid always calling onContent.
@@ -85,7 +85,7 @@ func newDisplay(qry *config.Query, teeFile, thoughtlessFile *utils.TeeFile) *dis
 // If both stdout are connected to a terminal, the rendered content is streamed to less.
 func renderAndDisplayMarkdown(content string) error {
 	render := func(writer io.Writer) error {
-		output := highlight.NewMarkdownStreamer(writer, "pygments", sysu.TerminalColorEnabled())
+		output := highlight.NewMarkdownStreamer(writer, sysu.TerminalColorEnabled())
 		if err := output.Write(content); err != nil {
 			return err
 		}
