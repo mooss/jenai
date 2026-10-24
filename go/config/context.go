@@ -13,6 +13,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strconv"
 	"time"
 )
 
@@ -107,27 +108,37 @@ func fileContent(buf *bytes.Buffer, path string, linum bool) error {
 	buf.WriteString(path)
 	buf.WriteString(" <====\n\n")
 
+	copyfun := func(dst *bytes.Buffer, src io.Reader) error {
+		_, err := io.Copy(dst, src)
+		return err
+	}
+
 	if linum {
-		scanner := bufio.NewScanner(reader)
-		lineNumber := 1
-		for scanner.Scan() {
-			fmt.Fprintf(buf, "%d: %s\n", lineNumber, scanner.Text())
-			lineNumber++
-		}
-		if err := scanner.Err(); err != nil {
-			return fmt.Errorf("error reading content from %s line by line: %w", path, err)
-		}
-	} else {
-		_, err := io.Copy(buf, reader)
-		if err != nil {
-			return fmt.Errorf("error writing content to buffer for %s: %w", path, err)
-		}
+		copyfun = copyWithLinum
+	}
+
+	if err := copyfun(buf, reader); err != nil {
+		return fmt.Errorf("failed to copy %s content to buffer: %w", path, err)
 	}
 
 	buf.WriteString("\n\n====> END OF ")
 	buf.WriteString(path)
 	buf.WriteString(" <====")
 	return nil
+}
+
+func copyWithLinum(buf *bytes.Buffer, src io.Reader) error {
+	scanner := bufio.NewScanner(src)
+	lineNumber := 1
+	for scanner.Scan() {
+		buf.WriteString(strconv.Itoa(lineNumber))
+		buf.WriteString(": ")
+		buf.Write(scanner.Bytes())
+		buf.WriteRune('\n')
+		lineNumber++
+	}
+
+	return scanner.Err()
 }
 
 // readContent returns an io.Reader for the given path, which can be a local file or a URL.
