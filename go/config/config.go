@@ -14,3 +14,10 @@ func Root() (string, error) {
 	}
 	return filepath.Join(home, ".config", "jenai"), nil
 }
+
+type GlobalFlags struct {
+	OutputFormat string
+}
+
+// GlobalFlags is the shared destination of global flags.
+var Global GlobalFlags

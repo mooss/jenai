@@ -73,11 +73,15 @@ func setupCommand(library prompts.Library) *cmd.Command {
 		Name:    os.Args[0],
 		Docline: "CLI prompt builder",
 		Usage:   "COMMAND ARGS...",
+		Flags:   flag.NewParser(),
 	}
 	jenai.Runner = func() error {
 		fmt.Print(jenai.Help())
 		return nil
 	}
+	jenai.Flags.String(
+		"fmt", &config.Global.OutputFormat, "Output format for structured data (yaml or json)",
+	).Default("yaml").Allowed("yaml", "json")
 
 	oneshot := &cmd.Command{
 		Name:    "oneshot",
