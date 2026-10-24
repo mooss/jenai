@@ -32,10 +32,32 @@ func NewEvalContext(lib Library, args *[]string) *EvalContext {
 func (ctx *EvalContext) Evaluate(prompt string) (string, error) {
 	content, err := ctx.RawPrompt(prompt)
 	if err != nil {
-		return "", err
+		return "", lastError(err)
 	}
 
-	return ctx.execute(content, nil)
+	result, err := ctx.execute(content, nil)
+	if err != nil {
+		return "", lastError(err)
+	}
+
+	return result, nil
+}
+
+func lastError(err error) error {
+	for err != nil {
+		unwrapper, ok := err.(interface{ Unwrap() error })
+		if !ok {
+			return err
+		}
+
+		unwrapped := unwrapper.Unwrap()
+		if unwrapped == nil {
+			return err
+		}
+		err = unwrapped
+	}
+
+	return nil
 }
 
 func (ctx *EvalContext) functions() template.FuncMap {
@@ -79,7 +101,13 @@ func gitCommand(args ...any) (string, error) {
 	cmd := exec.CommandContext(context.Background(), "git", strargs...)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		return "", fmt.Errorf("git %v failed: %w:\n%s", strargs, err, output)
+		errstr := err.Error() // Not wrapping the error to let lastError catch what is below.
+		msg := "`git %s` failed: %s:\n%s"
+		return "", fmt.Errorf(msg, strings.Join(strargs, " "), errstr, output)
+	}
+
+	if len(output) == 0 {
+		return "", fmt.Errorf("`git %s` returned nothing", strings.Join(strargs, " "))
 	}
 
 	return string(output), nil
