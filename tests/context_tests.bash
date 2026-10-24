@@ -4,7 +4,7 @@ set -euo pipefail
 #############
 # Functions #
 function run() {
-  go run ./go/cmd/jenai p commit_message --dry-run "$@"
+  go run ./go/cmd/jenai p review_previous_commit --dry-run "$@"
 }
 
 #########
