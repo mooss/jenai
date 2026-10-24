@@ -383,4 +383,6 @@ section2:
 
     ### Diff included below
 
+    ```diff
     {{ git (strings "diff" .) }}
+    ```
