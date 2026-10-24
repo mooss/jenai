@@ -41,17 +41,19 @@ func (p Prompt) static() []string {
 		buf = append(buf, p.Primary)
 	}
 
-	if len(p.Positional) > 0 {
-		buf = append(buf, p.Positional)
+	appendSource := func(name, content string) {
+		if len(content) == 0 {
+			return
+		}
+		if len(buf) > 0 {
+			buf = append(buf, "## "+name)
+		}
+		buf = append(buf, content)
 	}
 
-	if len(p.Clipboard) > 0 {
-		buf = append(buf, p.Clipboard)
-	}
-
-	if len(p.Stdin) > 0 {
-		buf = append(buf, p.Stdin)
-	}
+	appendSource("CLI arguments", p.Positional)
+	appendSource("Clipboard", p.Clipboard)
+	appendSource("Stdin", p.Stdin)
 
 	return buf
 }

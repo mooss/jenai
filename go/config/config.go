@@ -188,7 +188,7 @@ func isWayland() bool {
 func clipboardCommands() [][]string {
 	xclip := []string{"xclip", "-o", "-selection", "clipboard"}
 	xsel := []string{"xsel", "--clipboard", "--output"}
-	wlPaste := []string{"wl-paste"}
+	wlPaste := []string{"wl-paste", "-n"}
 
 	if isWayland() {
 		return [][]string{wlPaste, xclip, xsel}
