@@ -14,6 +14,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -34,6 +35,8 @@ func (c *Context) Empty() bool { return len(c.Files) == 0 && len(c.Dirs) == 0 }
 // Build returns the context string from included paths and the included paths.
 // Empty should be checked before calling this because the "additional context" header is always
 // present,
+//
+//revive:disable:line-length-limit
 func (c *Context) Build() (string, []string, error) {
 	if c.Empty() {
 		return "", nil, nil
@@ -47,6 +50,12 @@ func (c *Context) Build() (string, []string, error) {
 	}
 	buf.WriteString("## ")
 	buf.WriteString(title)
+	buf.WriteString("\n\nFiles are provided in Markdown code blocks, with a `### Start of $FILENAME` section above and a `> End of $FILENAME` quote below.")
+	buf.WriteString("\nThe Markdown code block fences (triple backticks) are not part of the files.")
+	if c.LineNumbers {
+		buf.WriteString("\nEach line of a file is prefixed with the line number in the format `line: `.")
+	}
+	buf.WriteString("\n")
 
 	for path, err := range c.allPaths {
 		if err != nil {
@@ -104,15 +113,16 @@ func fileContent(buf *bytes.Buffer, path string, linum bool) error {
 	}
 	defer reader.Close()
 
-	buf.WriteString("\n\n====> START OF ")
+	buf.WriteString("\n### Start of ")
 	buf.WriteString(path)
-	buf.WriteString(" <====\n\n")
+	buf.WriteString("\n```")
+	buf.WriteString(strings.TrimPrefix(filepath.Ext(path), "."))
+	buf.WriteRune('\n')
 
 	copyfun := func(dst *bytes.Buffer, src io.Reader) error {
 		_, err := io.Copy(dst, src)
 		return err
 	}
-
 	if linum {
 		copyfun = copyWithLinum
 	}
@@ -121,9 +131,9 @@ func fileContent(buf *bytes.Buffer, path string, linum bool) error {
 		return fmt.Errorf("failed to copy %s content to buffer: %w", path, err)
 	}
 
-	buf.WriteString("\n\n====> END OF ")
+	buf.WriteString("\n```\n> End of ")
 	buf.WriteString(path)
-	buf.WriteString(" <====")
+	buf.WriteString("\n")
 	return nil
 }
 

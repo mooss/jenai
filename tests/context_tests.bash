@@ -13,23 +13,26 @@ TMP_DIR=$(mktemp -d)
 trap 'rm -rf "$TMP_DIR"' EXIT
 
 mkdir -p "$TMP_DIR/testdir"
-echo "file1 content" > "$TMP_DIR/testdir/file1.txt"
-echo "file2 content" > "$TMP_DIR/testdir/file2.txt"
-echo "nested content" > "$TMP_DIR/testdir/nested.txt"
+FILE1="$TMP_DIR/testdir/file1.txt"
+FILE2="$TMP_DIR/testdir/file2.txt"
+NESTED="$TMP_DIR/testdir/nested.txt"
+echo "file1 content" > "$FILE1"
+echo "file2 content" > "FILE2"
+echo "nested content" > "$NESTED"
 
 #########
 # Tests #
 # Single file inclusion.
 echo -e "\nTEST: Single file context"
-output=$(run --read "$TMP_DIR/testdir/file1.txt")
-echo "$output" | grep -q "====> START OF $TMP_DIR/testdir/file1.txt" || {
+output=$(run --read "$FILE1")
+echo "$output" | grep -q "### Start of $FILE1" || {
     echo "Single file context failed"
     exit 1
 }
 
 # Multiple files.
 echo -e "\nTEST: Multiple file context"
-output=$(run --read "$TMP_DIR/testdir/file1.txt" "$TMP_DIR/testdir/file2.txt")
+output=$(run --read "$FILE1" "FILE2")
 echo "$output" | grep -q "file1 content" || {
     echo "File1 content missing"
     exit 1
@@ -50,14 +53,14 @@ echo "$output" | grep -q "nested content" || {
 # Context placement (above/below).
 echo -e "\nTEST: Context placement"
 output_above=$(run --context-above --read-dir "$TMP_DIR/testdir")
-output_below=$(run --read "$TMP_DIR/testdir/file1.txt")
+output_below=$(run --read "$FILE1")
 
 if ! echo "$output_above" | head -n1 | grep -q "^## Additional context"; then
     echo "Context above failed"
     exit 1
 fi
 
-if ! echo "$output_below" | tail -n8 | grep -q "^## Additional context"; then
+if ! echo "$output_below" | tail -n1 | grep -q "^> End of $FILE1"; then
     echo "Context below failed"
     exit 1
 fi
