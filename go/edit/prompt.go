@@ -1,9 +1,10 @@
-package main
+package edit
 
 import (
 	"fmt"
 
 	"github.com/mooss/jenai/go/config"
+	"github.com/mooss/jenai/go/edit/searep"
 )
 
 const editPromptText = `Edit the requested files according to the user's instructions.
@@ -35,9 +36,10 @@ go/flag/parser.go
 The search content must match the file verbatim and appear exactly once.
 Include more surrounding context if needed to make it unique.
 Preserve the file's indentation and style.
-The replacement content is the exact text that will replace the search content.`
+The replacement content is the exact text that will replace the search content.
+Make sure to close the code block fence.`
 
-func buildEditPrompt(qry *config.Query, writeFiles []string) (config.Prompt, error) {
+func BuildPrompt(qry *config.Query, writeFiles []string) (config.Prompt, error) {
 	prompt, err := qry.BuildOneshotPrompt()
 	if err != nil {
 		return config.Prompt{}, err
@@ -45,8 +47,8 @@ func buildEditPrompt(qry *config.Query, writeFiles []string) (config.Prompt, err
 
 	instructions := fmt.Sprintf(
 		editPromptText,
-		searchMarker, separatorMarker, replaceMarker,
-		searchMarker, separatorMarker, replaceMarker,
+		searep.SearchMarker, searep.SeparatorMarker, searep.ReplaceMarker,
+		searep.SearchMarker, searep.SeparatorMarker, searep.ReplaceMarker,
 	)
 	prompt.Primary = instructions
 	context := config.Context{Files: writeFiles, Title: "EDITABLE FILES"}
