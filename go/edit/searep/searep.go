@@ -22,6 +22,7 @@ type Block struct {
 	Replace string
 }
 
+//revive:disable:cognitive-complexity
 func ApplyBlocks(subs []Block, writeFiles []string) (Buffers, error) {
 	buffers := make(Buffers)
 	allowed := make(map[string]struct{}, len(writeFiles))

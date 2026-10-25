@@ -23,20 +23,19 @@ import (
 
 // Context handles inclusion of files and directories as context.
 type Context struct {
-	Files       []string `yaml:"files,omitempty" json:"files,omitempty"`
-	Dirs        []string `yaml:"dirs,omitempty" json:"dirs,omitempty"`
-	Above       bool     `yaml:"above,omitempty" json:"above,omitempty"`
-	LineNumbers bool     `yaml:"linenumbers,omitempty" json:"linenumbers,omitempty"`
-	Title       string   `yaml:"-" json:"-"`
+	Readable    FileSection `yaml:"readable" json:"readable"`
+	Writable    FileSection `yaml:"writable" json:"writable"`
+	Above       bool        `yaml:"above,omitempty" json:"above,omitempty"`
+	LineNumbers bool        `yaml:"linenumbers,omitempty" json:"linenumbers,omitempty"`
 }
 
-func (c *Context) Empty() bool { return len(c.Files) == 0 && len(c.Dirs) == 0 }
+func (c *Context) Empty() bool {
+	return c.Readable.Empty() && c.Writable.Empty()
+}
 
 // Build returns the context string from included paths and the included paths.
 // Empty should be checked before calling this because the "additional context" header is always
 // present,
-//
-//revive:disable:line-length-limit
 func (c *Context) Build() (string, []string, error) {
 	if c.Empty() {
 		return "", nil, nil
@@ -44,43 +43,87 @@ func (c *Context) Build() (string, []string, error) {
 
 	var buf bytes.Buffer
 	paths := []string{}
-	title := c.Title
-	if title == "" {
-		title = "Additional context (files)"
-	}
-	buf.WriteString("## ")
-	buf.WriteString(title)
-	buf.WriteString("\n\nFiles are provided in Markdown code blocks, with a `### Start of $FILENAME` section above and a `> End of $FILENAME` quote below.")
-	buf.WriteString("\nThe Markdown code block fences (triple backticks) are not part of the files.")
-	if c.LineNumbers {
-		buf.WriteString("\nEach line of a file is prefixed with the line number in the format `line: `.")
-	}
-	buf.WriteString("\n")
 
-	for path, err := range c.allPaths {
+	if !c.Readable.Empty() {
+		title := c.Readable.titleOr("Additional context (files)")
+		err := c.writeSection(&buf, &paths, title, c.Readable.AllPaths, c.LineNumbers)
 		if err != nil {
-			return "", nil, c.wrap(err)
+			return "", nil, err
 		}
+	}
 
-		if err := fileContent(&buf, path, c.LineNumbers); err != nil {
-			return "", nil, c.wrap(err)
+	if !c.Writable.Empty() {
+		title := c.Writable.titleOr("Editable files")
+		if err := c.writeSection(&buf, &paths, title, c.Writable.AllPaths, false); err != nil {
+			return "", nil, err
 		}
-
-		paths = append(paths, path)
 	}
 
 	return buf.String(), paths, nil
 }
 
-// allPaths returns an iterator on all paths contained in the context.
-func (c *Context) allPaths(yield func(string, error) bool) {
-	for _, path := range c.Files {
+func (c *Context) writeSection(
+	buf *bytes.Buffer, paths *[]string, title string, allPaths iter.Seq2[string, error], linum bool,
+) error {
+	c.writeSectionHeader(buf, title, linum)
+
+	for path, err := range allPaths {
+		if err != nil {
+			return c.wrap(err)
+		}
+		if err := fileContent(buf, path, linum); err != nil {
+			return c.wrap(err)
+		}
+		*paths = append(*paths, path)
+	}
+	return nil
+}
+
+//revive:disable:line-length-limit,flag-parameter
+func (*Context) writeSectionHeader(buf *bytes.Buffer, title string, linum bool) {
+	buf.WriteString("## ")
+	buf.WriteString(title)
+	buf.WriteString("\n\nFiles are provided in Markdown code blocks, with a `### Start of $FILENAME` section above and a `> End of $FILENAME` quote below.")
+	buf.WriteString("\nThe Markdown code block fences (triple backticks) are not part of the files.")
+	if linum {
+		buf.WriteString("\nEach line of a file is prefixed with the line number in the format `line: `.")
+	}
+	buf.WriteString("\n")
+}
+
+func (*Context) wrap(err error) error {
+	return fmt.Errorf("failed to build file context: %w", err)
+}
+
+/////////////////
+// FileSection //
+
+type FileSection struct {
+	Files []string `yaml:"files,omitempty" json:"files,omitempty"`
+	Dirs  []string `yaml:"dirs,omitempty" json:"dirs,omitempty"`
+	Title string   `yaml:"-" json:"-"`
+}
+
+func (s *FileSection) Empty() bool {
+	return len(s.Files) == 0 && len(s.Dirs) == 0
+}
+
+func (s *FileSection) titleOr(defaultTitle string) string {
+	if s.Title != "" {
+		return s.Title
+	}
+	return defaultTitle
+}
+
+// AllPaths returns an iterator on all paths contained in the section.
+func (s *FileSection) AllPaths(yield func(string, error) bool) {
+	for _, path := range s.Files {
 		if !yield(path, nil) {
 			return
 		}
 	}
 
-	for _, dir := range c.Dirs {
+	for _, dir := range s.Dirs {
 		if !yieldDirPaths(dir, yield) {
 			return
 		}
@@ -96,16 +139,10 @@ func yieldDirPaths(dir string, yield func(string, error) bool) bool {
 	return true
 }
 
-func (*Context) wrap(err error) error {
-	return fmt.Errorf("failed to build file context: %w", err)
-}
-
 ///////////////////////
 // Utility functions //
 
 // fileContent reads a file or URL and fills the buffer with its content, along with a header.
-//
-//nolint:revive
 func fileContent(buf *bytes.Buffer, path string, linum bool) error {
 	reader, err := readContent(path)
 	if err != nil {
@@ -180,7 +217,7 @@ func downloadContent(fileURL string) (body io.ReadCloser, err error) {
 	}
 
 	client := *http.DefaultClient
-	client.Timeout = 5 * time.Second
+	client.Timeout = 2 * time.Second
 
 	resp, err := client.Do(req)
 	if err != nil {
@@ -202,7 +239,7 @@ func downloadContent(fileURL string) (body io.ReadCloser, err error) {
 
 // iterFiles returns an iterator that yields all regular file paths under the given root directory.
 //
-//nolint:revive
+//revive:disable:cognitive-complexity
 func iterFiles(root string) iter.Seq2[string, error] {
 	return func(yield func(string, error) bool) {
 		_ = filepath.Walk(root, func(path string, info fs.FileInfo, err error) error {

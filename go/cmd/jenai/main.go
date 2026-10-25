@@ -105,19 +105,25 @@ func setupCommand(library prompts.Library) *cmd.Command {
 		return run(&qry, func() (config.Prompt, error) { return qry.BuildPrompt(library) })
 	}
 
-	writeArg := []string{}
 	force := false
 	edit := &cmd.Command{
 		Name:    "edit",
 		Docline: "Edit files according to instructions",
 		Usage:   "[INSTRUCTIONS...] --write FILE...",
+		Description: `Only the specified writable files will be modified, any attempt to mutate
+anything else will cause an error.
+
+By default only files followed by git and without any unstaged changed are
+allowed.
+This behavior can be bypassed with --force.`,
 		Aliases: []string{"ed"},
 		Flags:   qry.BindFlags(),
 	}
-	edit.Flags.StringSlice("write", &writeArg, "Files to edit")
+	edit.Flags.StringSlice("write", &qry.Context.Writable.Files, "Files to edit")
+	edit.Flags.StringSlice("write-dirs", &qry.Context.Writable.Dirs, "Dirs to edit (recurses)")
 	edit.Flags.Bool("force", &force, "Allow editing files with unstaged changes")
 	edit.Runner = func() error {
-		return runEdit(&qry, writeArg, force)
+		return runEdit(&qry, force)
 	}
 
 	modelZoo := &cmd.Command{

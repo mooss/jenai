@@ -13,12 +13,17 @@ import (
 	"github.com/mooss/jenai/go/edit/searep"
 )
 
-func runEdit(qry *config.Query, paths []string, force bool) error {
+func runEdit(qry *config.Query, force bool) error {
+	paths, err := lie.CollectE(qry.Context.Writable.AllPaths)
+	if err != nil {
+		return err
+	}
+
 	prepare := func() error {
 		return validateWriteFiles(paths, force)
 	}
 	mkprompt := func() (config.Prompt, error) {
-		return edit.BuildPrompt(qry, paths)
+		return edit.BuildPrompt(qry)
 	}
 	onResponse := func(response string) error {
 		blocks, err := searep.Parse(response)
