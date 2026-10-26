@@ -14,7 +14,7 @@ import (
 )
 
 func runEdit(qry *config.Query, force bool) error {
-	paths, err := lie.CollectE(qry.Context.Writable.AllPaths)
+	paths, err := qry.Context.WritablePaths()
 	if err != nil {
 		return err
 	}

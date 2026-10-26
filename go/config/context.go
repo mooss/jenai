@@ -30,6 +30,9 @@ type Context struct {
 	Writable    FileSection `yaml:"writable" json:"writable"`
 	Above       bool        `yaml:"above,omitempty" json:"above,omitempty"`
 	LineNumbers bool        `yaml:"linenumbers,omitempty" json:"linenumbers,omitempty"`
+
+	readableCache pathsCache
+	writableCache pathsCache
 }
 
 func (c *Context) Empty() bool {
@@ -44,12 +47,12 @@ func (c *Context) Build() (string, []string, error) {
 		return "", nil, nil
 	}
 
-	readablePaths, err := dedupPaths(c.Readable.AllPaths)
+	readablePaths, err := c.ReadablePaths()
 	if err != nil {
 		return "", nil, c.wrap(err)
 	}
 
-	writablePaths, err := dedupPaths(c.Writable.AllPaths)
+	writablePaths, err := c.WritablePaths()
 	if err != nil {
 		return "", nil, c.wrap(err)
 	}
@@ -79,7 +82,17 @@ func (c *Context) Build() (string, []string, error) {
 		}
 	}
 
-	return buf.String(), append(readablePaths, writablePaths...), nil
+	return buf.String(), slices.Concat(readablePaths, writablePaths), nil
+}
+
+// ReadablePaths returns the deduplicated readable paths, walking directories only once.
+func (c *Context) ReadablePaths() ([]string, error) {
+	return c.readableCache.get(c.Readable.AllPaths)
+}
+
+// WritablePaths returns the deduplicated writable paths, walking directories only once.
+func (c *Context) WritablePaths() ([]string, error) {
+	return c.writableCache.get(c.Writable.AllPaths)
 }
 
 func dedupPaths(allPaths iter.Seq2[string, error]) ([]string, error) {
@@ -175,6 +188,27 @@ func yieldDirPaths(dir string, yield func(string, error) bool) bool {
 		}
 	}
 	return true
+}
+
+/////////////////
+// Paths cache //
+
+// pathsCache memoizes the deduplicated paths of a file section, walking directories only once.
+type pathsCache struct {
+	paths  []string
+	err    error
+	cached bool
+}
+
+func (p *pathsCache) get(allPaths iter.Seq2[string, error]) ([]string, error) {
+	if p.cached {
+		return p.paths, p.err
+	}
+	paths, err := dedupPaths(allPaths)
+	p.paths = paths
+	p.err = err
+	p.cached = true
+	return paths, err
 }
 
 ///////////////////////
