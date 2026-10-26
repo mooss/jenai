@@ -59,7 +59,7 @@ func regenModelZoo(qry *config.Query, args []string) (retErr error) {
 		ctx:    context.Background(),
 		apiKey: qry.APIKeys["openrouter"],
 	}
-	updated, err := mae.MapE(specup.update, specs)
+	updated, err := mae.MapVE(specup.update, specs)
 	if err != nil {
 		return err
 	}

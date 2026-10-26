@@ -5,19 +5,24 @@ import (
 	"fmt"
 	"os"
 	"strings"
-
-	"github.com/mooss/bagend/go/pth"
 )
 
 var (
-	SearchMarker    = "<<<<<<< SEARCH"
+	// SearchMarker marks the start of a search and replace block.
+	SearchMarker = "<<<<<<< SEARCH"
+	// SeparatorMarker marks the boundary between search and replace.
 	SeparatorMarker = "======="
-	ReplaceMarker   = ">>>>>>> REPLACE"
+	// ReplaceMarker marks the end of a search and replace block.
+	ReplaceMarker = ">>>>>>> REPLACE"
 )
 
+// Block is a search and replace block.
 type Block struct {
-	File    string
-	Search  string
+	// Filepath as it appears in the model's response.
+	Filepath string
+	// Content to search for.
+	Search string
+	// Replacement content.
 	Replace string
 }
 
@@ -26,42 +31,35 @@ func ApplyBlocks(subs []Block, writeFiles []string) (Buffers, error) {
 	buffers := make(Buffers)
 	allowed := make(map[string]struct{}, len(writeFiles))
 	for _, file := range writeFiles {
-		resolved, err := pth.Resolve(file)
-		if err != nil {
-			return nil, err
-		}
-		allowed[resolved] = struct{}{}
+		allowed[file] = struct{}{}
 	}
 
 	for _, sub := range subs {
-		resolved, err := pth.Resolve(sub.File)
-		if err != nil {
-			return nil, err
-		}
-		_, ok := allowed[resolved]
+		_, ok := allowed[sub.Filepath]
 		if !ok {
-			msg := "refusing attempt to write to file %q (resolved to %q, not in writable files)"
-			return nil, fmt.Errorf(msg, sub.File, resolved)
+			return nil, fmt.Errorf("file %q is not in writable files", sub.Filepath)
 		}
 
-		content, ok := buffers[resolved]
+		content, ok := buffers[sub.Filepath]
 		if !ok {
-			data, err := os.ReadFile(resolved)
+			data, err := os.ReadFile(sub.Filepath)
 			if err != nil {
-				return nil, fmt.Errorf("when reading editable file %q: %w", resolved, err)
+				return nil, fmt.Errorf("when reading editable file %q: %w", sub.Filepath, err)
 			}
 			content = string(data)
 		}
 
 		if sub.Search == "" && content != "" {
-			return nil, fmt.Errorf("search content for %q must not be empty for non-empty files", sub.File)
-		}
-		if count := strings.Count(content, sub.Search); count != 1 {
-			msg := "search content for %q occurs %d times; expected exactly once"
-			return nil, fmt.Errorf(msg, sub.File, count)
+			msg := "search content for %q must not be empty for non-empty files"
+			return nil, fmt.Errorf(msg, sub.Filepath)
 		}
 
-		buffers[resolved] = strings.Replace(content, sub.Search, sub.Replace, 1)
+		if count := strings.Count(content, sub.Search); count != 1 {
+			msg := "search content for %q occurs %d times; expected exactly once"
+			return nil, fmt.Errorf(msg, sub.Filepath, count)
+		}
+
+		buffers[sub.Filepath] = strings.Replace(content, sub.Search, sub.Replace, 1)
 	}
 
 	return buffers, nil

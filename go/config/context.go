@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"github.com/mooss/bagend/go/obj/oset"
+	"github.com/mooss/bagend/go/pth"
 )
 
 ///////////////////
@@ -87,12 +88,12 @@ func (c *Context) Build() (string, []string, error) {
 
 // ReadablePaths returns the deduplicated readable paths, walking directories only once.
 func (c *Context) ReadablePaths() ([]string, error) {
-	return c.readableCache.get(c.Readable.AllPaths)
+	return c.readableCache.get(c.Readable.allResolvedPaths)
 }
 
 // WritablePaths returns the deduplicated writable paths, walking directories only once.
 func (c *Context) WritablePaths() ([]string, error) {
-	return c.writableCache.get(c.Writable.AllPaths)
+	return c.writableCache.get(c.Writable.allResolvedPaths)
 }
 
 func dedupPaths(allPaths iter.Seq2[string, error]) ([]string, error) {
@@ -126,18 +127,20 @@ func (c *Context) writeSection(
 
 //revive:disable:line-length-limit,flag-parameter
 func (c *Context) writeSectionHeader(buf *bytes.Buffer, title string, linum bool, first bool) {
+	if !first {
+		buf.WriteRune('\n')
+	}
 	buf.WriteString("## ")
 	buf.WriteString(title)
-	buf.WriteString("\n")
 	if first {
-		buf.WriteString("\nFiles are provided in Markdown code blocks, with a `### Start of $FILENAME` section above and a `> End of $FILENAME` quote below.")
+		buf.WriteString("\n\nFiles are provided in Markdown code blocks, with a `### Start of $FILENAME` section above and a `> End of $FILENAME` quote below.")
 		buf.WriteString("\nThe Markdown code block fences (triple backticks) just after the start and just before the end are not part of the files.")
 		if linum {
 			buf.WriteString("\nThe files in this section are prefixed with the line number in the format `line: `.")
 		}
 	} else if c.LineNumbers {
 		// The first section contains line numbers so remind that this section in contrast does not.
-		buf.WriteString("\nThe files in this section do not contain line numbers.")
+		buf.WriteString("\n\nThe files in this section do not contain line numbers.")
 	}
 	buf.WriteString("\n")
 }
@@ -166,8 +169,28 @@ func (s *FileSection) titleOr(defaultTitle string) string {
 	return defaultTitle
 }
 
-// AllPaths returns an iterator on all paths contained in the section.
-func (s *FileSection) AllPaths(yield func(string, error) bool) {
+// allPaths yields every resolved path in the FileSection.
+func (s *FileSection) allResolvedPaths(yield func(string, error) bool) {
+	for raw, err := range s.allPaths {
+		if err != nil {
+			yield("", err)
+			return
+		}
+
+		res, err := pth.ResolveRel(raw)
+		if err != nil {
+			yield("", err)
+			return
+		}
+
+		if !yield(res, nil) {
+			return
+		}
+	}
+}
+
+// allPaths yields every path in the FileSection.
+func (s *FileSection) allPaths(yield func(string, error) bool) {
 	for _, path := range s.Files {
 		if !yield(path, nil) {
 			return
@@ -181,6 +204,7 @@ func (s *FileSection) AllPaths(yield func(string, error) bool) {
 	}
 }
 
+// yieldDirPaths recursively walks dir and yields every paths under it.
 func yieldDirPaths(dir string, yield func(string, error) bool) bool {
 	for path, err := range iterFiles(dir) {
 		if !yield(path, err) {

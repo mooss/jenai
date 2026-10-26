@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-
-	"github.com/mooss/bagend/go/pth"
 )
 
 type Buffers map[string]string
@@ -35,12 +33,6 @@ type stagedFile struct {
 }
 
 func stageEditableFile(path, content string) (stagedFile, error) {
-	resolved, err := pth.Resolve(path)
-	if err != nil {
-		return stagedFile{}, err
-	}
-	path = resolved
-
 	info, err := os.Stat(path)
 	if err != nil {
 		return stagedFile{}, fmt.Errorf("stat editable file %q: %w", path, err)

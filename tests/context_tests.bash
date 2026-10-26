@@ -25,8 +25,9 @@ echo "nested content" > "$NESTED"
 # Single file inclusion.
 echo -e "\nTEST: Single file context"
 output=$(run --read "$FILE1")
-echo "$output" | grep -q "### Start of $FILE1" || {
+echo "$output" | grep -q "### Start of .*$FILE1" || {
     echo "Single file context failed"
+    echo "$output"
     exit 1
 }
 
@@ -60,7 +61,7 @@ if ! echo "$output_above" | head -n1 | grep -q "^## Additional context"; then
     exit 1
 fi
 
-if ! echo "$output_below" | tail -n1 | grep -q "^> End of $FILE1"; then
+if ! echo "$output_below" | tail -n1 | grep -q "^> End of .*$FILE1"; then
     echo "Context below failed"
     exit 1
 fi

@@ -62,9 +62,9 @@ func Parse(response string) ([]Block, error) {
 		i++
 
 		result = append(result, Block{
-			File:    file,
-			Search:  joinBlockLines(searchLines),
-			Replace: joinBlockLines(replaceLines),
+			Filepath: file,
+			Search:   joinBlockLines(searchLines),
+			Replace:  joinBlockLines(replaceLines),
 		})
 	}
 

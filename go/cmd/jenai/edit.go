@@ -40,43 +40,32 @@ func runEdit(qry *config.Query, force bool) error {
 	return runWithHooks(qry, mkprompt, prepare, onResponse)
 }
 
-// validateWriteFiles checks that the requested files are writable and, unless
-// force is set, tracked by Git with no unstaged changes.
-func validateWriteFiles(files []string, force bool) error {
-	if len(files) == 0 {
+// validateWriteFiles checks that the requested paths are writable and, unless force is set, tracked
+// by Git with no unstaged changes.
+func validateWriteFiles(paths []string, force bool) error {
+	if len(paths) == 0 {
 		return errors.New("at least one writable file is required")
 	}
 
-	validator := writeValidator{seen: map[string]struct{}{}, force: force}
-	return lie.Validate(validator.validateWriteFile, files)
+	return lie.Validate((&writeValidator{force}).isValid, paths)
 }
 
 type writeValidator struct {
-	seen  map[string]struct{}
 	force bool
 }
 
-func (wv *writeValidator) validateWriteFile(file string) error {
-	file = strings.TrimSpace(file)
-	if file == "" {
+func (wv *writeValidator) isValid(path string) error {
+	path = strings.TrimSpace(path)
+	if path == "" {
 		return errors.New("writable files cannot be empty")
 	}
 
-	resolved, err := pth.Resolve(file)
-	if err != nil {
-		return err
-	}
-	if _, ok := wv.seen[resolved]; ok {
-		return fmt.Errorf("file %q was specified more than once", file)
-	}
-	wv.seen[resolved] = struct{}{}
-
-	if err := pth.CheckWritable(resolved); err != nil {
+	if err := pth.CheckWritable(path); err != nil {
 		return err
 	}
 
 	if !wv.force {
-		if err := gitw.FileIsClean(resolved); err != nil {
+		if err := gitw.FileIsClean(path); err != nil {
 			return fmt.Errorf("file is not git-clean, use --force to allow it: %w", err)
 		}
 	}
