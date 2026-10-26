@@ -133,11 +133,11 @@ func (c *Context) writeSectionHeader(buf *bytes.Buffer, title string, linum bool
 		buf.WriteString("\nFiles are provided in Markdown code blocks, with a `### Start of $FILENAME` section above and a `> End of $FILENAME` quote below.")
 		buf.WriteString("\nThe Markdown code block fences (triple backticks) just after the start and just before the end are not part of the files.")
 		if linum {
-			buf.WriteString("\nEach line of a file is prefixed with the line number in the format `line: `.")
+			buf.WriteString("\nThe files in this section are prefixed with the line number in the format `line: `.")
 		}
 	} else if c.LineNumbers {
 		// The first section contains line numbers so remind that this section in contrast does not.
-		buf.WriteString("\nThis section does not contain line numbers.")
+		buf.WriteString("\nThe files in this section do not contain line numbers.")
 	}
 	buf.WriteString("\n")
 }

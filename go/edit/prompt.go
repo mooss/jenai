@@ -27,9 +27,11 @@ For instance:
 go/flag/parser.go
 ` + "```go" + `
 %s
-			dest = &par.Positional
+// Set is a set of elements of type T.
+type Set[T comparable] map[T]struct{}
 %s
-			dest = &par.positional
+// Set is an unordered set of unique elements of type T.
+type Set[T comparable] map[T]struct{}
 %s
 ` + "```" + `
 
