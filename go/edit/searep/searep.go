@@ -6,7 +6,6 @@ import (
 	"os"
 	"strings"
 
-	"github.com/mooss/bagend/go/fun/eager/lie"
 	"github.com/mooss/bagend/go/pth"
 )
 
@@ -51,12 +50,11 @@ func ApplyBlocks(subs []Block, writeFiles []string) (Buffers, error) {
 			if err != nil {
 				return nil, fmt.Errorf("when reading editable file %q: %w", resolved, err)
 			}
-			// Files must end in newlines otherwise search/replace could break on the last line.
-			content = string(lie.EnsureFinal(data, '\n'))
+			content = string(data)
 		}
 
-		if sub.Search == "" {
-			return nil, fmt.Errorf("search content for %q must not be empty", sub.File)
+		if sub.Search == "" && content != "" {
+			return nil, fmt.Errorf("search content for %q must not be empty for non-empty files", sub.File)
 		}
 		if count := strings.Count(content, sub.Search); count != 1 {
 			msg := "search content for %q occurs %d times; expected exactly once"
