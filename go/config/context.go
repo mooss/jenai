@@ -13,9 +13,12 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/mooss/bagend/go/obj/oset"
 )
 
 ///////////////////
@@ -41,52 +44,87 @@ func (c *Context) Build() (string, []string, error) {
 		return "", nil, nil
 	}
 
+	readablePaths, err := dedupPaths(c.Readable.AllPaths)
+	if err != nil {
+		return "", nil, c.wrap(err)
+	}
+
+	writablePaths, err := dedupPaths(c.Writable.AllPaths)
+	if err != nil {
+		return "", nil, c.wrap(err)
+	}
+
+	dupes := oset.New(readablePaths...).Intersect(slices.Values(writablePaths))
+	if !dupes.Empty() {
+		msg := "files %v were provided as both readable and writable"
+		return "", nil, c.wrap(fmt.Errorf(msg, slices.Sorted(dupes.Keys())))
+	}
+
 	var buf bytes.Buffer
-	paths := []string{}
+	first := true
 
 	if !c.Readable.Empty() {
 		title := c.Readable.titleOr("Additional context (files)")
-		err := c.writeSection(&buf, &paths, title, c.Readable.AllPaths, c.LineNumbers)
+		err := c.writeSection(&buf, title, readablePaths, c.LineNumbers, first)
 		if err != nil {
 			return "", nil, err
 		}
+		first = false
 	}
 
 	if !c.Writable.Empty() {
 		title := c.Writable.titleOr("Editable files")
-		if err := c.writeSection(&buf, &paths, title, c.Writable.AllPaths, false); err != nil {
+		if err := c.writeSection(&buf, title, writablePaths, false, first); err != nil {
 			return "", nil, err
 		}
 	}
 
-	return buf.String(), paths, nil
+	return buf.String(), append(readablePaths, writablePaths...), nil
+}
+
+func dedupPaths(allPaths iter.Seq2[string, error]) ([]string, error) {
+	seen := make(map[string]struct{})
+	var out []string
+	for path, err := range allPaths {
+		if err != nil {
+			return nil, err
+		}
+		if _, ok := seen[path]; ok {
+			continue
+		}
+		seen[path] = struct{}{}
+		out = append(out, path)
+	}
+	return out, nil
 }
 
 func (c *Context) writeSection(
-	buf *bytes.Buffer, paths *[]string, title string, allPaths iter.Seq2[string, error], linum bool,
+	buf *bytes.Buffer, title string, paths []string, linum bool, first bool,
 ) error {
-	c.writeSectionHeader(buf, title, linum)
+	c.writeSectionHeader(buf, title, linum, first)
 
-	for path, err := range allPaths {
-		if err != nil {
-			return c.wrap(err)
-		}
+	for _, path := range paths {
 		if err := fileContent(buf, path, linum); err != nil {
 			return c.wrap(err)
 		}
-		*paths = append(*paths, path)
 	}
 	return nil
 }
 
 //revive:disable:line-length-limit,flag-parameter
-func (*Context) writeSectionHeader(buf *bytes.Buffer, title string, linum bool) {
+func (c *Context) writeSectionHeader(buf *bytes.Buffer, title string, linum bool, first bool) {
 	buf.WriteString("## ")
 	buf.WriteString(title)
-	buf.WriteString("\n\nFiles are provided in Markdown code blocks, with a `### Start of $FILENAME` section above and a `> End of $FILENAME` quote below.")
-	buf.WriteString("\nThe Markdown code block fences (triple backticks) are not part of the files.")
-	if linum {
-		buf.WriteString("\nEach line of a file is prefixed with the line number in the format `line: `.")
+	buf.WriteString("\n")
+	if first {
+		buf.WriteString("\nFiles are provided in Markdown code blocks, with a `### Start of $FILENAME` section above and a `> End of $FILENAME` quote below.")
+		buf.WriteString("\nThe Markdown code block fences (triple backticks) just after the start and just before the end are not part of the files.")
+		if linum {
+			buf.WriteString("\nEach line of a file is prefixed with the line number in the format `line: `.")
+		}
+	} else if c.LineNumbers {
+		// The first section contains line numbers so remind that this section in contrast does not.
+		buf.WriteString("\nThis section does not contain line numbers.")
 	}
 	buf.WriteString("\n")
 }
