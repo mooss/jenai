@@ -41,17 +41,17 @@ models:
         - high
         - low
       default_effort: high
-  kimi-k3:
+  kimi:
     provider: openrouter
     author: moonshotai
-    model: kimi-k3
+    model: kimi-k3.1-pro
     reasoning:
       supported_efforts:
         - max
         - high
         - low
         - none
-      default_effort: low
+      default_effort: high
   luna:
     provider: openrouter
     author: ~openai
@@ -102,4 +102,17 @@ models:
         - medium
         - low
         - minimal
+      default_effort: medium
+  terra:
+    provider: openrouter
+    author: ~openai
+    model: gpt-terra-latest
+    reasoning:
+      supported_efforts:
+        - max
+        - xhigh
+        - high
+        - medium
+        - low
+        - none
       default_effort: medium
