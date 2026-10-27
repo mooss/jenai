@@ -18,6 +18,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/mooss/bagend/go/fun/lazy"
 	"github.com/mooss/bagend/go/obj/oset"
 	"github.com/mooss/bagend/go/pth"
 )
@@ -96,20 +97,11 @@ func (c *Context) WritablePaths() ([]string, error) {
 	return c.writableCache.get(c.Writable.allResolvedPaths)
 }
 
+// dedupPaths drains allPaths and returns the distinct paths in first-seen order.
 func dedupPaths(allPaths iter.Seq2[string, error]) ([]string, error) {
-	seen := make(map[string]struct{})
-	var out []string
-	for path, err := range allPaths {
-		if err != nil {
-			return nil, err
-		}
-		if _, ok := seen[path]; ok {
-			continue
-		}
-		seen[path] = struct{}{}
-		out = append(out, path)
-	}
-	return out, nil
+	seen := oset.Empty[string]()
+	paths, geterr := lazy.SplitErr(allPaths)
+	return slices.Collect(seen.AddUniq(paths)), geterr()
 }
 
 func (c *Context) writeSection(

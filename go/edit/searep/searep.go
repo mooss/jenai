@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"os"
 	"strings"
+
+	"github.com/mooss/bagend/go/obj/oset"
 )
 
 var (
@@ -29,14 +31,10 @@ type Block struct {
 //revive:disable:cognitive-complexity
 func ApplyBlocks(subs []Block, writeFiles []string) (Buffers, error) {
 	buffers := make(Buffers)
-	allowed := make(map[string]struct{}, len(writeFiles))
-	for _, file := range writeFiles {
-		allowed[file] = struct{}{}
-	}
+	allowed := oset.New(writeFiles...)
 
 	for _, sub := range subs {
-		_, ok := allowed[sub.Filepath]
-		if !ok {
+		if !allowed.Contains(sub.Filepath) {
 			return nil, fmt.Errorf("file %q is not in writable files", sub.Filepath)
 		}
 
