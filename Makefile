@@ -1,4 +1,4 @@
-.PHONY: nothing test go-test bash-test lint install
+.PHONY: nothing test go-test bash-test lint install install-debug
 
 nothing:
 	@echo -n 'jen '
@@ -24,3 +24,6 @@ update-bagend:
 
 install:
 	go install ./go/cmd/jenai
+
+install-debug:
+	go install -gcflags="all=-N -l" ./go/cmd/jenai
