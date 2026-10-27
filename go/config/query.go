@@ -17,6 +17,7 @@ import (
 type Query struct {
 	APIKeys            map[string]string `yaml:"-" json:"-"`
 	Context            Context           `yaml:"context" json:"context"`
+	Copy               bool              `yaml:"copy,omitempty" json:"copy,omitempty"`
 	DryRun             bool              `yaml:"dryrun,omitempty" json:"dryrun,omitempty"`
 	Model              string            `yaml:"model,omitempty" json:"model,omitempty"`
 	Paste              bool              `yaml:"paste,omitempty" json:"paste,omitempty"`
@@ -47,6 +48,7 @@ func (qry *Query) BindFlags() *flag.Parser {
 		"model", &qry.Model, "Model name (short name from `model-zoo` or provider:author/model)",
 	).Alias("m").Default("spark")
 	flags.Bool("paste", &qry.Paste, "Use clipboard content as prompt")
+	flags.Bool("copy", &qry.Copy, "Copy response to clipboard (copies prompt with --dry-run)")
 	flags.String("effort", &qry.Effort, "Reasoning effort (must be supported by the model)")
 	flags.String("tee", &qry.TeeFile, "Output first answer to both stdout and FILE (overwritten)")
 	flags.Bool("thoughtless", &qry.Thoughtless, "Hide model reasoning").Alias("t")
@@ -76,6 +78,9 @@ func (qry *Query) LoadFile(path string) error {
 	return nil
 }
 
+/////////////////////
+// Utility methods //
+
 func (qry *Query) APIKeyFor(provider string) (string, error) {
 	if key := qry.APIKeys[provider]; key != "" {
 		return key, nil
@@ -89,6 +94,17 @@ func (qry *Query) APIKeyFor(provider string) (string, error) {
 		provider, filepath.Join(dir, "config.yaml"), provider,
 	)
 }
+
+func (qry *Query) MaybeCopy(content string) {
+	if qry.Copy {
+		if err := sysu.WriteClipboard(content); err != nil {
+			fmt.Fprintf(os.Stderr, "clipboard writing attempt returned an error: %s\n", err)
+		}
+	}
+}
+
+/////////////////////
+// Prompt building //
 
 // BuildPrompt returns the complete prompt, taking all sources into account (prompt, clipboard,
 // positional argument, and stdin).

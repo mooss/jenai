@@ -108,6 +108,7 @@ The completion commands (=oneshot=, =prompt= and =edit=) use common flags to con
 
 *** Output
 
+ - =--copy= :: copies the output to the clipboard.
  - =-n|--dry-run= :: prints built prompt without calling the LLM.
  - =--tee= and =--thoughtless-tee|--tt= :: tees the output to the given file.
  - =-t|--thoughtless= :: hides thinking.

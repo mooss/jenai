@@ -186,6 +186,7 @@ func run(qry *config.Query, mkprompt func() (config.Prompt, error)) error {
 	return runWithHooks(qry, mkprompt, nil, nil)
 }
 
+//revive:disable:cognitive-complexity,cyclomatic
 func runWithHooks(
 	qry *config.Query,
 	mkprompt func() (config.Prompt, error),
@@ -213,7 +214,9 @@ func runWithHooks(
 	}
 
 	if qry.DryRun {
-		return renderAndDisplayMarkdown(prompt.String())
+		dry := prompt.String()
+		qry.MaybeCopy(dry)
+		return renderAndDisplayMarkdown(dry)
 	}
 
 	if prompt.Empty() {
@@ -232,6 +235,7 @@ func runWithHooks(
 	if err != nil {
 		return err
 	}
+	qry.MaybeCopy(response)
 	if onResponse != nil {
 		return onResponse(response)
 	}
