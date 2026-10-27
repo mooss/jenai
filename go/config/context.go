@@ -325,30 +325,31 @@ func downloadContent(fileURL string) (body io.ReadCloser, err error) {
 	return resp.Body, nil
 }
 
+var errIterBreak = errors.New("iteration stopped")
+
 // iterFiles returns an iterator that yields all regular file paths under the given root directory.
 //
 //revive:disable:cognitive-complexity
 func iterFiles(root string) iter.Seq2[string, error] {
 	return func(yield func(string, error) bool) {
-		_ = filepath.Walk(root, func(path string, info fs.FileInfo, err error) error {
+		err := filepath.Walk(root, func(path string, info fs.FileInfo, err error) error {
 			if err != nil {
 				if !yield(path, err) {
-					// The caller decides whether to stop.
-					return err
+					return errIterBreak
 				}
-
 				return nil
 			}
-
 			if info.IsDir() {
 				return nil
 			}
-
 			if !yield(path, nil) {
-				return errors.New("IGNORED")
+				return errIterBreak
 			}
-
 			return nil
 		})
+		if err == nil || errors.Is(err, errIterBreak) {
+			return
+		}
+		yield("", err)
 	}
 }
