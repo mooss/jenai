@@ -11,12 +11,13 @@ import (
 	"github.com/mooss/bagend/go/sysu"
 	"github.com/mooss/jenai/go/prompts"
 	"github.com/mooss/jenai/go/utils"
+	"github.com/mooss/jenai/go/workspace"
 )
 
 //revive:disable:line-length-limit
 type Query struct {
 	APIKeys            map[string]string `yaml:"-" json:"-"`
-	Context            Context           `yaml:"context" json:"context"`
+	Context            workspace.Fileset `yaml:"context" json:"context"`
 	Copy               bool              `yaml:"copy,omitempty" json:"copy,omitempty"`
 	DryRun             bool              `yaml:"dryrun,omitempty" json:"dryrun,omitempty"`
 	Model              string            `yaml:"model,omitempty" json:"model,omitempty"`
