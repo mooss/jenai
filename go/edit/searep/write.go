@@ -1,7 +1,9 @@
 package searep
 
 import (
+	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 )
@@ -33,9 +35,9 @@ type stagedFile struct {
 }
 
 func stageEditableFile(path, content string) (stagedFile, error) {
-	info, err := os.Stat(path)
+	mode, err := editableFileMode(path)
 	if err != nil {
-		return stagedFile{}, fmt.Errorf("stat editable file %q: %w", path, err)
+		return stagedFile{}, err
 	}
 
 	temp, err := os.CreateTemp(filepath.Dir(path), ".jenai-edit-*")
@@ -44,7 +46,7 @@ func stageEditableFile(path, content string) (stagedFile, error) {
 	}
 
 	file := stagedFile{path: path, temp: temp.Name()}
-	if err := temp.Chmod(info.Mode()); err != nil {
+	if err := temp.Chmod(mode); err != nil {
 		_ = temp.Close()
 		return file, fmt.Errorf("set permissions for %q: %w", path, err)
 	}
@@ -59,6 +61,18 @@ func stageEditableFile(path, content string) (stagedFile, error) {
 	}
 
 	return file, nil
+}
+
+func editableFileMode(path string) (fs.FileMode, error) {
+	info, err := os.Stat(path)
+	if errors.Is(err, fs.ErrNotExist) {
+		return 0o666, nil
+	}
+	if err != nil {
+		return 0, fmt.Errorf("stat editable file %q: %w", path, err)
+	}
+
+	return info.Mode(), nil
 }
 
 func replaceStagedFiles(staged []stagedFile) error {

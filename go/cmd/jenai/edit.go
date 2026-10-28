@@ -14,10 +14,11 @@ import (
 )
 
 func runEdit(qry *config.Query, force bool) error {
-	paths, err := qry.Context.WritablePaths()
+	resolved, err := qry.Context.Resolve()
 	if err != nil {
 		return err
 	}
+	paths := resolved.Editable()
 
 	prepare := func() error {
 		return validateWriteFiles(paths, force)
@@ -40,8 +41,8 @@ func runEdit(qry *config.Query, force bool) error {
 	return runWithHooks(qry, mkprompt, prepare, onResponse)
 }
 
-// validateWriteFiles checks that the requested paths are writable and, unless force is set, tracked
-// by Git with no unstaged changes.
+// validateWriteFiles checks that the requested paths are writable or creatable and, unless force is
+// set, that the existing ones are tracked by Git with no unstaged changes.
 func validateWriteFiles(paths []string, force bool) error {
 	if len(paths) == 0 {
 		return errors.New("at least one writable file is required")
@@ -58,6 +59,11 @@ func (wv *writeValidator) isValid(path string) error {
 	path = strings.TrimSpace(path)
 	if path == "" {
 		return errors.New("writable files cannot be empty")
+	}
+
+	if !pth.Exists(path) {
+		// The path does not exist, so treat it as a creatable file and skip validation.
+		return nil
 	}
 
 	if err := pth.CheckWritable(path); err != nil {

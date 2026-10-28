@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
-	"iter"
 	"net/http"
 	"net/url"
 	"os"
@@ -18,7 +17,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mooss/bagend/go/fun/lazy"
 	"github.com/mooss/bagend/go/obj/oset"
 	"github.com/mooss/bagend/go/pth"
 )
@@ -33,12 +31,59 @@ type Context struct {
 	Above       bool        `yaml:"above,omitempty" json:"above,omitempty"`
 	LineNumbers bool        `yaml:"linenumbers,omitempty" json:"linenumbers,omitempty"`
 
-	readableCache pathsCache
-	writableCache pathsCache
+	resolved *resolvedCache
 }
 
 func (c *Context) Empty() bool {
 	return c.Readable.Empty() && c.Writable.Empty()
+}
+
+// ResolvedPaths holds deduplicated absolute paths, split by kind.
+type ResolvedPaths struct {
+	Readable  []string
+	Writable  []string
+	Creatable []string
+}
+
+// All returns every path, readable first.
+func (p ResolvedPaths) All() []string {
+	return slices.Concat(p.Readable, p.Writable, p.Creatable)
+}
+
+// Editable returns the writable and creatable paths.
+func (p ResolvedPaths) Editable() []string {
+	return slices.Concat(p.Writable, p.Creatable)
+}
+
+type resolvedCache struct {
+	paths ResolvedPaths
+	err   error
+}
+
+// Resolve expands files and dirs once and splits writable paths by existence.
+func (c *Context) Resolve() (ResolvedPaths, error) {
+	if c.resolved == nil {
+		res, err := c.resolveImpl()
+		c.resolved = &resolvedCache{res, err}
+	}
+
+	return c.resolved.paths, c.resolved.err
+}
+
+func (c *Context) resolveImpl() (ResolvedPaths, error) {
+	readable, err := c.Readable.readablePaths()
+	if err != nil {
+		return ResolvedPaths{}, err
+	}
+	writable, creatable, err := c.Writable.writablePaths()
+	if err != nil {
+		return ResolvedPaths{}, err
+	}
+	return ResolvedPaths{
+		Readable:  readable,
+		Writable:  writable,
+		Creatable: creatable,
+	}, nil
 }
 
 // Build returns the context string from included paths and the included paths.
@@ -49,17 +94,12 @@ func (c *Context) Build() (string, []string, error) {
 		return "", nil, nil
 	}
 
-	readablePaths, err := c.ReadablePaths()
+	paths, err := c.Resolve()
 	if err != nil {
 		return "", nil, c.wrap(err)
 	}
 
-	writablePaths, err := c.WritablePaths()
-	if err != nil {
-		return "", nil, c.wrap(err)
-	}
-
-	dupes := oset.New(readablePaths...).Intersect(slices.Values(writablePaths))
+	dupes := oset.New(paths.Readable...).Intersect(slices.Values(paths.Editable()))
 	if !dupes.Empty() {
 		msg := "files %v were provided as both readable and writable"
 		return "", nil, c.wrap(fmt.Errorf(msg, slices.Sorted(dupes.Keys())))
@@ -68,41 +108,31 @@ func (c *Context) Build() (string, []string, error) {
 	var buf bytes.Buffer
 	first := true
 
-	if !c.Readable.Empty() {
+	if len(paths.Readable) > 0 {
 		title := c.Readable.titleOr("Additional context (files)")
-		err := c.writeSection(&buf, title, readablePaths, c.LineNumbers, first)
-		if err != nil {
+		if err := c.writeSection(&buf, title, paths.Readable, c.LineNumbers, first); err != nil {
 			return "", nil, err
 		}
 		first = false
 	}
 
-	if !c.Writable.Empty() {
+	if len(paths.Writable) > 0 {
 		title := c.Writable.titleOr("Editable files")
-		if err := c.writeSection(&buf, title, writablePaths, false, first); err != nil {
+		if err := c.writeSection(&buf, title, paths.Writable, false, first); err != nil {
 			return "", nil, err
 		}
+		first = false
 	}
 
-	return buf.String(), slices.Concat(readablePaths, writablePaths), nil
+	if len(paths.Creatable) > 0 {
+		writeCreatableSection(&buf, paths.Creatable, first)
+	}
+
+	return buf.String(), paths.All(), nil
 }
 
-// ReadablePaths returns the deduplicated readable paths, walking directories only once.
-func (c *Context) ReadablePaths() ([]string, error) {
-	return c.readableCache.get(c.Readable.allResolvedPaths)
-}
-
-// WritablePaths returns the deduplicated writable paths, walking directories only once.
-func (c *Context) WritablePaths() ([]string, error) {
-	return c.writableCache.get(c.Writable.allResolvedPaths)
-}
-
-// dedupPaths drains allPaths and returns the distinct paths in first-seen order.
-func dedupPaths(allPaths iter.Seq2[string, error]) ([]string, error) {
-	seen := oset.Empty[string]()
-	paths, geterr := lazy.SplitErr(allPaths)
-	return slices.Collect(seen.AddUniq(paths)), geterr()
-}
+//////////////
+// Sections //
 
 func (c *Context) writeSection(
 	buf *bytes.Buffer, title string, paths []string, linum bool, first bool,
@@ -141,6 +171,20 @@ func (*Context) wrap(err error) error {
 	return fmt.Errorf("failed to build file context: %w", err)
 }
 
+// writeCreatableSection lists writable paths that do not exist yet and can be created.
+func writeCreatableSection(buf *bytes.Buffer, paths []string, first bool) {
+	if !first {
+		buf.WriteRune('\n')
+	}
+	buf.WriteString("## Creatable files\n\n")
+	buf.WriteString("The following writable files do not exist yet, but can be created with a search/replace block if needed.\n")
+	for _, path := range paths {
+		buf.WriteString("- ")
+		buf.WriteString(path)
+		buf.WriteRune('\n')
+	}
+}
+
 /////////////////
 // FileSection //
 
@@ -161,70 +205,103 @@ func (s *FileSection) titleOr(defaultTitle string) string {
 	return defaultTitle
 }
 
-// allPaths yields every resolved path in the FileSection.
-func (s *FileSection) allResolvedPaths(yield func(string, error) bool) {
-	for raw, err := range s.allPaths {
-		if err != nil {
-			yield("", err)
-			return
-		}
-
-		res, err := pth.ResolveRel(raw)
-		if err != nil {
-			yield("", err)
-			return
-		}
-
-		if !yield(res, nil) {
-			return
-		}
+// readablePaths expands files and dirs and resolves them to absolute paths.
+func (s *FileSection) readablePaths() ([]string, error) {
+	raw, err := s.listAll()
+	if err != nil {
+		return nil, err
 	}
+	resolved := make([]string, 0, len(raw))
+	for _, path := range raw {
+		res, err := pth.ResolveRel(path)
+		if err != nil {
+			return nil, err
+		}
+		resolved = append(resolved, res)
+	}
+	return dedupOrdered(resolved), nil
 }
 
-// allPaths yields every path in the FileSection.
-func (s *FileSection) allPaths(yield func(string, error) bool) {
-	for _, path := range s.Files {
-		if !yield(path, nil) {
-			return
+// writablePaths expands files and dirs and splits them by existence.
+// ResolveRel requires existence, so missing paths use resolveCreatablePath.
+//
+//revive:disable:cognitive-complexity
+func (s *FileSection) writablePaths() (writable, creatable []string, err error) {
+	raw, err := s.listAll()
+	if err != nil {
+		return nil, nil, err
+	}
+	seen := make(map[string]bool)
+	for _, rawPath := range raw {
+		if strings.TrimSpace(rawPath) == "" {
+			return nil, nil, errors.New("writable files cannot be empty")
+		}
+		exists := pth.Exists(rawPath)
+		var path string
+		if exists {
+			path, err = pth.ResolveRel(rawPath)
+		} else {
+			path, err = resolveCreatablePath(rawPath)
+		}
+		if err != nil {
+			return nil, nil, err
+		}
+		if seen[path] {
+			continue
+		}
+		seen[path] = true
+		if exists {
+			writable = append(writable, path)
+		} else {
+			creatable = append(creatable, path)
 		}
 	}
+	return writable, creatable, nil
+}
 
+// listAll returns configured files plus every file under configured dirs.
+func (s *FileSection) listAll() ([]string, error) {
+	out := slices.Clone(s.Files)
 	for _, dir := range s.Dirs {
-		if !yieldDirPaths(dir, yield) {
-			return
+		files, err := collectDirFiles(dir)
+		if err != nil {
+			return nil, err
 		}
+		out = append(out, files...)
 	}
+	return out, nil
 }
 
-// yieldDirPaths recursively walks dir and yields every paths under it.
-func yieldDirPaths(dir string, yield func(string, error) bool) bool {
-	for path, err := range iterFiles(dir) {
-		if !yield(path, err) {
-			return false
+// dedupOrdered returns distinct paths in first-seen order.
+func dedupOrdered(paths []string) []string {
+	seen := oset.Empty[string]()
+	return slices.Collect(seen.AddUniq(slices.Values(paths)))
+}
+
+// resolveCreatablePath resolves the nearest existing ancestor and appends the missing components.
+func resolveCreatablePath(path string) (string, error) {
+	abs, err := filepath.Abs(path)
+	if err != nil {
+		return "", err
+	}
+	parent := abs
+	var missing []string
+	for !pth.Exists(parent) {
+		next := filepath.Dir(parent)
+		if next == parent {
+			return "", fmt.Errorf("no existing ancestor for %s", path)
 		}
+		missing = append(missing, filepath.Base(parent))
+		parent = next
 	}
-	return true
-}
-
-/////////////////
-// Paths cache //
-
-// pathsCache memoizes the deduplicated paths of a file section, walking directories only once.
-type pathsCache struct {
-	paths  []string
-	err    error
-	cached bool
-}
-
-func (p *pathsCache) get(allPaths iter.Seq2[string, error]) ([]string, error) {
-	if p.cached {
-		return p.paths, p.err
+	resolved, err := pth.ResolveRel(parent)
+	if err != nil {
+		return "", err
 	}
-	paths, err := dedupPaths(allPaths)
-	p.paths = paths
-	p.err = err
-	p.cached = true
-	return paths, err
+	for _, el := range slices.Backward(missing) {
+		resolved = filepath.Join(resolved, el)
+	}
+	return resolved, nil
 }
 
 ///////////////////////
@@ -244,15 +321,12 @@ func fileContent(buf *bytes.Buffer, path string, linum bool) error {
 	buf.WriteString(strings.TrimPrefix(filepath.Ext(path), "."))
 	buf.WriteRune('\n')
 
-	copyfun := func(dst *bytes.Buffer, src io.Reader) error {
-		_, err := io.Copy(dst, src)
-		return err
-	}
 	if linum {
-		copyfun = copyWithLinum
+		err = copyWithLinum(buf, reader)
+	} else {
+		_, err = io.Copy(buf, reader)
 	}
-
-	if err := copyfun(buf, reader); err != nil {
+	if err != nil {
 		return fmt.Errorf("failed to copy %s content to buffer: %w", path, err)
 	}
 
@@ -298,7 +372,7 @@ func isURL(path string) bool {
 
 // downloadContent downloads content from the given URL.
 // The caller must close the returned reader.
-func downloadContent(fileURL string) (body io.ReadCloser, err error) {
+func downloadContent(fileURL string) (io.ReadCloser, error) {
 	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, fileURL, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to download URL %s: %w", fileURL, err)
@@ -311,13 +385,9 @@ func downloadContent(fileURL string) (body io.ReadCloser, err error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to download URL %s: %w", fileURL, err)
 	}
-	defer func() {
-		if err != nil {
-			resp.Body.Close()
-		}
-	}()
 
 	if resp.StatusCode != http.StatusOK {
+		resp.Body.Close()
 		msg := "failed to download URL %s, status code: %d"
 		return nil, fmt.Errorf(msg, fileURL, resp.StatusCode)
 	}
@@ -325,31 +395,17 @@ func downloadContent(fileURL string) (body io.ReadCloser, err error) {
 	return resp.Body, nil
 }
 
-var errIterBreak = errors.New("iteration stopped")
-
-// iterFiles returns an iterator that yields all regular file paths under the given root directory.
-//
-//revive:disable:cognitive-complexity
-func iterFiles(root string) iter.Seq2[string, error] {
-	return func(yield func(string, error) bool) {
-		err := filepath.Walk(root, func(path string, info fs.FileInfo, err error) error {
-			if err != nil {
-				if !yield(path, err) {
-					return errIterBreak
-				}
-				return nil
-			}
-			if info.IsDir() {
-				return nil
-			}
-			if !yield(path, nil) {
-				return errIterBreak
-			}
-			return nil
-		})
-		if err == nil || errors.Is(err, errIterBreak) {
-			return
+// collectDirFiles returns every regular file under root.
+func collectDirFiles(root string) ([]string, error) {
+	var files []string
+	err := filepath.Walk(root, func(path string, info fs.FileInfo, err error) error {
+		if err != nil {
+			return err
 		}
-		yield("", err)
-	}
+		if !info.IsDir() {
+			files = append(files, path)
+		}
+		return nil
+	})
+	return files, err
 }

@@ -2,7 +2,9 @@
 package searep
 
 import (
+	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"strings"
 
@@ -41,7 +43,7 @@ func ApplyBlocks(subs []Block, writeFiles []string) (Buffers, error) {
 		content, ok := buffers[sub.Filepath]
 		if !ok {
 			data, err := os.ReadFile(sub.Filepath)
-			if err != nil {
+			if err != nil && !errors.Is(err, fs.ErrNotExist) {
 				return nil, fmt.Errorf("when reading editable file %q: %w", sub.Filepath, err)
 			}
 			content = string(data)
