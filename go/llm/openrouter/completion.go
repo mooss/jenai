@@ -53,14 +53,39 @@ type Delta struct {
 	Reasoning string `json:"reasoning,omitempty"`
 }
 
-// Usage contains token counts reported by the API, typically in a terminal chunk.
+// Usage contains token counts and cost information reported by the API.
 type Usage struct {
 	// PromptTokens is the number of tokens in the prompt.
 	PromptTokens int `json:"prompt_tokens,omitempty"`
+	// PromptTokensDetails contains details about prompt token usage.
+	PromptTokensDetails *PromptTokensDetails `json:"prompt_tokens_details,omitempty"`
 	// CompletionTokens is the number of tokens in the completion.
 	CompletionTokens int `json:"completion_tokens,omitempty"`
+	// CompletionTokensDetails contains details about completion token usage.
+	CompletionTokensDetails *CompletionTokensDetails `json:"completion_tokens_details,omitempty"`
 	// TotalTokens is the total number of prompt and completion tokens.
 	TotalTokens int `json:"total_tokens,omitempty"`
+	// Cost is the total cost reported by the API.
+	Cost *float64 `json:"cost,omitempty"`
+	// CostDetails contains details about the reported cost.
+	CostDetails *CostDetails `json:"cost_details,omitempty"`
+}
+
+// PromptTokensDetails contains details about prompt token usage.
+type PromptTokensDetails struct {
+	CachedTokens     int `json:"cached_tokens,omitempty"`
+	CacheWriteTokens int `json:"cache_write_tokens,omitempty"`
+	AudioTokens      int `json:"audio_tokens,omitempty"`
+}
+
+// CompletionTokensDetails contains details about completion token usage.
+type CompletionTokensDetails struct {
+	ReasoningTokens int `json:"reasoning_tokens,omitempty"`
+}
+
+// CostDetails contains details about the reported cost.
+type CostDetails struct {
+	UpstreamInferenceCost float64 `json:"upstream_inference_cost,omitempty"`
 }
 
 // apiError represents an error returned in a streamed API chunk.

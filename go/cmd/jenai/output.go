@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/mooss/bagend/go/obj/osl"
 	"github.com/mooss/bagend/go/sysu"
 	"github.com/mooss/jenai/go/config"
 	"github.com/mooss/jenai/go/highlight"
@@ -37,13 +38,17 @@ func streamAndDisplay(
 	defer thoughtlessFile.Finish()
 
 	d := newDisplay(qry, teeFile, thoughtlessFile)
+	defer d.printCost()
 
 	chunks, errs, err := openrouter.StreamCompletion(ctx, spec, apiKey, promptStr)
 	noerr0(err)
+
 	for chunk := range chunks {
 		d.handleChunk(chunk)
 	}
-	noerr0(<-errs)
+	streamErr := <-errs
+
+	noerr0(streamErr)
 
 	if d.stdoutThink.unclosed() {
 		noerr0(errors.New("reasoning never closed"))
@@ -66,6 +71,7 @@ type display struct {
 	teeThink        thinkGuard
 	endsWithNewline bool
 	response        strings.Builder
+	usage           *openrouter.Usage
 }
 
 func newDisplay(qry *config.Query, teeFile, thoughtlessFile *utils.TeeFile) *display {
@@ -145,6 +151,9 @@ func (d *display) onContent(s string) {
 }
 
 func (d *display) handleChunk(chunk openrouter.Chunk) {
+	if chunk.Usage != nil {
+		d.usage = chunk.Usage
+	}
 	if len(chunk.Choices) == 0 {
 		if chunk.Usage != nil {
 			return // Expected final usage-only chunk from `IncludeUsage: true`.
@@ -167,6 +176,31 @@ func (d *display) finish() {
 		d.onContent("\n")
 	}
 	noerr0(d.output.Flush())
+}
+
+func (d *display) printCost() {
+	if d.usage == nil {
+		return
+	}
+	u := d.usage
+	costStr := "¢? (unavailable)"
+	if u.Cost != nil {
+		costStr = fmt.Sprintf("¢%.4f", 100*(*u.Cost))
+	}
+	parts := osl.New(
+		costStr,
+		fmt.Sprintf(":prompt %d", u.PromptTokens),
+		fmt.Sprintf(":completion %d", u.CompletionTokens),
+		fmt.Sprintf(":total %d", u.TotalTokens),
+	)
+	if u.PromptTokensDetails != nil && u.PromptTokensDetails.CachedTokens > 0 {
+		parts.Push(fmt.Sprintf(":cached %d", u.PromptTokensDetails.CachedTokens))
+	}
+	if u.CompletionTokensDetails != nil && u.CompletionTokensDetails.ReasoningTokens > 0 {
+		parts.Push(fmt.Sprintf(":reasoning %d", u.CompletionTokensDetails.ReasoningTokens))
+	}
+
+	fmt.Fprintf(os.Stderr, "\nCost: %s\n", strings.Join(parts, " "))
 }
 
 ////////////////
