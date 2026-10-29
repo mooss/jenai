@@ -62,8 +62,8 @@ func (wv *writeValidator) isValid(path string) error {
 	}
 
 	if !pth.Exists(path) {
-		// The path does not exist, so treat it as a creatable file and skip validation.
-		return nil
+		_, err := pth.MayCreate(path)
+		return err
 	}
 
 	if err := pth.CheckWritable(path); err != nil {
