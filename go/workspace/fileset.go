@@ -5,12 +5,11 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"path/filepath"
 	"slices"
 	"strconv"
-	"strings"
 
 	"github.com/mooss/bagend/go/obj/oset"
+	"github.com/mooss/jenai/go/highlight"
 )
 
 // Fileset handles the interaction with files and directories.
@@ -23,26 +22,26 @@ type Fileset struct {
 	resolved *resolvedCache
 }
 
-func (c *Fileset) Empty() bool {
-	return c.Readable.Empty() && c.Writable.Empty()
+func (fs *Fileset) Empty() bool {
+	return fs.Readable.Empty() && fs.Writable.Empty()
 }
 
 // Resolve expands files and dirs once and splits writable paths by existence.
-func (c *Fileset) Resolve() (ResolvedPaths, error) {
-	if c.resolved == nil {
-		res, err := c.resolveImpl()
-		c.resolved = &resolvedCache{res, err}
+func (fs *Fileset) Resolve() (ResolvedPaths, error) {
+	if fs.resolved == nil {
+		res, err := fs.resolveImpl()
+		fs.resolved = &resolvedCache{res, err}
 	}
 
-	return c.resolved.paths, c.resolved.err
+	return fs.resolved.paths, fs.resolved.err
 }
 
-func (c *Fileset) resolveImpl() (ResolvedPaths, error) {
-	readable, err := c.Readable.readablePaths()
+func (fs *Fileset) resolveImpl() (ResolvedPaths, error) {
+	readable, err := fs.Readable.readablePaths()
 	if err != nil {
 		return ResolvedPaths{}, err
 	}
-	writable, creatable, err := c.Writable.writablePaths()
+	writable, creatable, err := fs.Writable.writablePaths()
 	if err != nil {
 		return ResolvedPaths{}, err
 	}
@@ -56,36 +55,36 @@ func (c *Fileset) resolveImpl() (ResolvedPaths, error) {
 // Build returns the context string from included paths and the included paths.
 // Empty should be checked before calling this because the "additional context" header is always
 // present,
-func (c *Fileset) Build() (string, []string, error) {
-	if c.Empty() {
+func (fs *Fileset) Build() (string, []string, error) {
+	if fs.Empty() {
 		return "", nil, nil
 	}
 
-	paths, err := c.Resolve()
+	paths, err := fs.Resolve()
 	if err != nil {
-		return "", nil, c.wrap(err)
+		return "", nil, fs.wrap(err)
 	}
 
 	dupes := oset.New(paths.Readable...).Intersect(slices.Values(paths.Editable()))
 	if !dupes.Empty() {
 		msg := "files %v were provided as both readable and writable"
-		return "", nil, c.wrap(fmt.Errorf(msg, slices.Sorted(dupes.Keys())))
+		return "", nil, fs.wrap(fmt.Errorf(msg, slices.Sorted(dupes.Keys())))
 	}
 
 	var buf bytes.Buffer
 	first := true
 
 	if len(paths.Readable) > 0 {
-		title := c.Readable.titleOr("Additional context (files)")
-		if err := c.writeSection(&buf, title, paths.Readable, c.LineNumbers, first); err != nil {
+		title := fs.Readable.titleOr("Additional context (files)")
+		if err := fs.writeSection(&buf, title, paths.Readable, fs.LineNumbers, first); err != nil {
 			return "", nil, err
 		}
 		first = false
 	}
 
 	if len(paths.Writable) > 0 {
-		title := c.Writable.titleOr("Editable files")
-		if err := c.writeSection(&buf, title, paths.Writable, false, first); err != nil {
+		title := fs.Writable.titleOr("Editable files")
+		if err := fs.writeSection(&buf, title, paths.Writable, false, first); err != nil {
 			return "", nil, err
 		}
 		first = false
@@ -101,21 +100,21 @@ func (c *Fileset) Build() (string, []string, error) {
 //////////////
 // Sections //
 
-func (c *Fileset) writeSection(
+func (fs *Fileset) writeSection(
 	buf *bytes.Buffer, title string, paths []string, linum bool, first bool,
 ) error {
-	c.writeSectionHeader(buf, title, linum, first)
+	fs.writeSectionHeader(buf, title, linum, first)
 
 	for _, path := range paths {
 		if err := fileContent(buf, path, linum); err != nil {
-			return c.wrap(err)
+			return fs.wrap(err)
 		}
 	}
 	return nil
 }
 
 //revive:disable:line-length-limit,flag-parameter
-func (c *Fileset) writeSectionHeader(buf *bytes.Buffer, title string, linum bool, first bool) {
+func (fs *Fileset) writeSectionHeader(buf *bytes.Buffer, title string, linum bool, first bool) {
 	if !first {
 		buf.WriteRune('\n')
 	}
@@ -127,7 +126,7 @@ func (c *Fileset) writeSectionHeader(buf *bytes.Buffer, title string, linum bool
 		if linum {
 			buf.WriteString("\nThe files in this section are prefixed with the line number in the format `line: `.")
 		}
-	} else if c.LineNumbers {
+	} else if fs.LineNumbers {
 		// The first section contains line numbers so remind that this section in contrast does not.
 		buf.WriteString("\n\nThe files in this section do not contain line numbers.")
 	}
@@ -137,6 +136,9 @@ func (c *Fileset) writeSectionHeader(buf *bytes.Buffer, title string, linum bool
 func (*Fileset) wrap(err error) error {
 	return fmt.Errorf("failed to build file context: %w", err)
 }
+
+///////////////////////
+// Utility functions //
 
 // writeCreatableSection lists writable paths that do not exist yet and can be created.
 func writeCreatableSection(buf *bytes.Buffer, paths []string, first bool) {
@@ -152,9 +154,6 @@ func writeCreatableSection(buf *bytes.Buffer, paths []string, first bool) {
 	}
 }
 
-/////////////////
-// fileContent //
-
 // fileContent reads a file or URL and fills the buffer with its content, along with a header.
 func fileContent(buf *bytes.Buffer, path string, linum bool) error {
 	reader, err := readContent(path)
@@ -166,7 +165,7 @@ func fileContent(buf *bytes.Buffer, path string, linum bool) error {
 	buf.WriteString("\n### Start of ")
 	buf.WriteString(path)
 	buf.WriteString("\n```")
-	buf.WriteString(strings.TrimPrefix(filepath.Ext(path), "."))
+	buf.WriteString(highlight.LanguageMatcher().DetectLanguage(path).MDName())
 	buf.WriteRune('\n')
 
 	if linum {
