@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"strings"
@@ -48,14 +49,20 @@ func validateWriteFiles(paths []string, force bool) error {
 		return errors.New("at least one writable file is required")
 	}
 
-	return lie.Validate((&writeValidator{force}).isValid, paths)
+	repo, err := gitw.New(context.Background())
+	if err != nil {
+		return err
+	}
+
+	return lie.Validate((&writeValidator{force, repo}).isValid, paths)
 }
 
 type writeValidator struct {
 	force bool
+	repo  gitw.Repo
 }
 
-func (wv *writeValidator) isValid(path string) error {
+func (val *writeValidator) isValid(path string) error {
 	path = strings.TrimSpace(path)
 	if path == "" {
 		return errors.New("writable files cannot be empty")
@@ -70,8 +77,8 @@ func (wv *writeValidator) isValid(path string) error {
 		return err
 	}
 
-	if !wv.force {
-		if err := gitw.FileIsClean(path); err != nil {
+	if !val.force {
+		if err := val.repo.FileIsClean(path); err != nil {
 			return fmt.Errorf("file is not git-clean, use --force to allow it: %w", err)
 		}
 	}

@@ -62,16 +62,6 @@ func Wrapf[T any](res T, err error, format string, args ...any) (T, error) {
 	return res, nil
 }
 
-// Wrap wraps a non-nil *err and prefixes it with a formatted string.
-// It is meant to be called at the beginning of a function using defer.
-func Wrap(err *error, format string, args ...any) {
-	if err == nil || *err == nil {
-		return
-	}
-
-	*err = fmt.Errorf(format+": %w", append(args, *err)...)
-}
-
 // OnceErr returns a function that calls mk exactly once and caches the result.
 // Subsequent calls will return the cached value.
 // The returned function is safe for concurrent use.
