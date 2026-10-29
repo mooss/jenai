@@ -1,6 +1,6 @@
 package highlight
 
-/* Languages was generated using Pygments with the code below, do not modify manually.
+/* Languages was generated using Pygments with the code below, and edited manually.
 from pygments.lexers import get_all_lexers
 import json
 def gostring(s):
@@ -214,7 +214,7 @@ var KnownLanguages = LanguageList{
 	{Name: "Gherkin", Shortnames: []string{"gherkin", "cucumber"}, Patterns: []string{"*.feature"}},
 	{Name: "Gleam", Shortnames: []string{"gleam"}, Patterns: []string{"*.gleam"}},
 	{Name: "Gnuplot", Shortnames: []string{"gnuplot"}, Patterns: []string{"*.plot", "*.plt"}},
-	{Name: "Go", Shortnames: []string{"go", "golang"}, Patterns: []string{"*.go"}},
+	{Name: "Go", Shortnames: []string{"go", "golang"}, Patterns: []string{"*.go", "go.mod", "go.sum"}},
 	{Name: "Golo", Shortnames: []string{"golo"}, Patterns: []string{"*.golo"}},
 	{Name: "GoodData-CL", Shortnames: []string{"gooddata-cl"}, Patterns: []string{"*.gdc"}},
 	{Name: "GoogleSQL", Shortnames: []string{"googlesql", "zetasql"}, Patterns: []string{"*.googlesql", "*.googlesql.sql"}},

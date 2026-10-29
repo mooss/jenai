@@ -162,10 +162,15 @@ func fileContent(buf *bytes.Buffer, path string, linum bool) error {
 	}
 	defer reader.Close()
 
+	lang := highlight.LanguageMatcher().DetectLanguage(path).MDName()
+	if isURL(path) || lang == "" {
+		lang = "text"
+	}
+
 	buf.WriteString("\n### Start of ")
 	buf.WriteString(path)
 	buf.WriteString("\n```")
-	buf.WriteString(highlight.LanguageMatcher().DetectLanguage(path).MDName())
+	buf.WriteString(lang)
 	buf.WriteRune('\n')
 
 	if linum {
