@@ -75,6 +75,9 @@ func Parse(response string) ([]Block, error) {
 	return result, nil
 }
 
+// collectUntil collects lines from start until the marker line.
+// Returns the collected lines (without the marker), the index of the marker, and whether the marker
+// was found.
 func collectUntil(lines []string, start int, marker string) ([]string, int, bool) {
 	for i := start; i < len(lines); i++ {
 		if lines[i] == marker {

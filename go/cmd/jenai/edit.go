@@ -31,7 +31,7 @@ func runEdit(qry *config.Query, force bool) error {
 		if err != nil {
 			return err
 		}
-		buffers, err := searep.ApplyBlocks(blocks, paths)
+		buffers, err := searep.ApplySearchAndReplace(blocks, paths)
 		if err != nil {
 			return err
 		}

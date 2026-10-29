@@ -30,9 +30,12 @@ type Block struct {
 	Replace string
 }
 
+// ApplySearchAndReplace applies the given search/replace blocks to the editable files and returns
+// the resulting in-memory buffers.
+//
 //revive:disable:cognitive-complexity
-func ApplyBlocks(subs []Block, writeFiles []string) (Buffers, error) {
-	buffers := make(Buffers)
+func ApplySearchAndReplace(subs []Block, writeFiles []string) (UpdatedFiles, error) {
+	updated := make(UpdatedFiles)
 	allowed := oset.New(writeFiles...)
 
 	for _, sub := range subs {
@@ -40,7 +43,7 @@ func ApplyBlocks(subs []Block, writeFiles []string) (Buffers, error) {
 			return nil, fmt.Errorf("file %q is not in writable files", sub.Filepath)
 		}
 
-		content, ok := buffers[sub.Filepath]
+		content, ok := updated[sub.Filepath]
 		if !ok {
 			data, err := os.ReadFile(sub.Filepath)
 			if err != nil && !errors.Is(err, fs.ErrNotExist) {
@@ -59,8 +62,8 @@ func ApplyBlocks(subs []Block, writeFiles []string) (Buffers, error) {
 			return nil, fmt.Errorf(msg, sub.Filepath, count)
 		}
 
-		buffers[sub.Filepath] = strings.Replace(content, sub.Search, sub.Replace, 1)
+		updated[sub.Filepath] = strings.Replace(content, sub.Search, sub.Replace, 1)
 	}
 
-	return buffers, nil
+	return updated, nil
 }
