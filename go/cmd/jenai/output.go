@@ -189,9 +189,7 @@ func (d *display) printCost() {
 	}
 	parts := osl.New(
 		costStr,
-		fmt.Sprintf(":prompt %d", u.PromptTokens),
-		fmt.Sprintf(":completion %d", u.CompletionTokens),
-		fmt.Sprintf(":total %d", u.TotalTokens),
+		fmt.Sprintf(":completion %d+%d=%d", u.PromptTokens, u.CompletionTokens, u.TotalTokens),
 	)
 	if u.PromptTokensDetails != nil && u.PromptTokensDetails.CachedTokens > 0 {
 		parts.Push(fmt.Sprintf(":cached %d", u.PromptTokensDetails.CachedTokens))

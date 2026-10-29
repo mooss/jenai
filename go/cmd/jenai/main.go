@@ -139,6 +139,7 @@ This behavior can be bypassed with --force.`,
 		Docline: "Print details for a model, or the whole model zoo",
 		Usage:   "[MODEL]",
 		Flags:   flag.NewParser().Positional(&posargs),
+		Aliases: []string{"d"},
 	}
 	details.Runner = func() error { return printModelDetails(posargs) }
 
