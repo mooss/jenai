@@ -43,15 +43,19 @@ function ensure-resolved() {
     go run $ROOT/scripts/resolve-openapi-refs.go -ref-siblings merge $RAWSPECS > $RESOLVED
 }
 
+function path() {
+    jq ".paths[\"$1\"]" "$RESOLVED"
+}
+
 # gen-or generates the types for openrouter.
 function gen-or() {
     local -r oapi_path="$1"; shift
     local -r dest="$1"; shift
-    jq "$oapi_path" "$RESOLVED"\
+    path "$oapi_path"\
         | python $ROOT/scripts/vibe/oapi2go.py --package generated "$@"\
         | gofmt > $ROOT/go/llm/openrouter/generated/"$dest"
 }
 
 ensure-resolved
-gen-or '.paths["/model/{author}/{slug}"]' model.go --keep 200
-gen-or '.paths["/models/{author}/{slug}/endpoints"]' models-endpoints.go --keep 200
+gen-or '/model/{author}/{slug}' model.go --keep 200
+gen-or '/models/{author}/{slug}/endpoints' models-endpoints.go --keep 200
