@@ -131,8 +131,9 @@ type chatReasoning struct {
 ////////////
 // Stream //
 
-// StreamCompletion starts a streaming completion and returns the raw chunk and error channels.
-func StreamCompletion(
+// CreateCompletionStream starts a streaming completion and returns the raw chunk and error
+// channels.
+func CreateCompletionStream(
 	ctx context.Context, spec models.Spec, apiKey, prompt string,
 ) (<-chan Chunk, <-chan error, error) {
 	req, err := newRequest(ctx, spec, apiKey, prompt)

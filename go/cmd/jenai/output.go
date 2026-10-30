@@ -11,7 +11,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mooss/bagend/go/obj/osl"
 	"github.com/mooss/bagend/go/sysu"
 	"github.com/mooss/jenai/go/config"
 	"github.com/mooss/jenai/go/highlight"
@@ -37,15 +36,18 @@ func streamAndDisplay(
 	defer thoughtlessFile.Finish()
 
 	out := NewTerminalRenderer(qry, teeFile, thoughtlessFile)
-	streamer := Streamer{consumer: out}
-	defer streamer.printCost()
-
-	chunks, errs, err := openrouter.StreamCompletion(ctx, spec, apiKey, prompt.String())
+	streamer, err := openrouter.NewStreamer(ctx, spec, apiKey, prompt.String(), out)
 	if err != nil {
 		return "", err
 	}
 
-	if err := streamer.Stream(chunks, errs); err != nil {
+	defer func() {
+		if usage := streamer.FormatUsage(); usage != "" {
+			fmt.Fprint(os.Stderr, "\n", usage)
+		}
+	}()
+
+	if err := streamer.ProcessChunks(); err != nil {
 		return "", err
 	}
 
@@ -90,80 +92,8 @@ func renderAndDisplayMarkdown(content string) error {
 	return errors.Join(render(pagerStdin), pagerStdin.Close(), pager.Wait())
 }
 
-//////////////
-// Streamer //
-
-type Streamer struct {
-	usage    *openrouter.Usage
-	consumer CompletionReader
-}
-
-func (r* Streamer) Stream(chunks <-chan openrouter.Chunk, errs <-chan error) error {
-	for chunk := range chunks {
-		if err := r.handleChunk(chunk); err != nil {
-			return err
-		}
-	}
-
-	return <-errs
-}
-
-func (r *Streamer) handleChunk(chunk openrouter.Chunk) error {
-	if chunk.Usage != nil {
-		r.usage = chunk.Usage
-	}
-	if len(chunk.Choices) == 0 {
-		if chunk.Usage == nil { // Expected final usage-only chunk.
-			fmt.Fprintln(os.Stderr, "warning: chunk with empty choices and no usage")
-		}
-
-		return nil
-	}
-
-	delta := chunk.Choices[0].Delta
-	if delta.Reasoning != "" {
-		if err := r.consumer.ReadReasoning(delta.Reasoning); err != nil {
-			return err
-		}
-	}
-	if delta.Content != "" {
-		if err := r.consumer.ReadContent(delta.Content); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func (r *Streamer) printCost() {
-	if r.usage == nil {
-		return
-	}
-	u := r.usage
-	costStr := "¢? (unavailable)"
-	if u.Cost != nil {
-		costStr = fmt.Sprintf("¢%.4f", 100*(*u.Cost))
-	}
-	parts := osl.New(
-		costStr,
-		fmt.Sprintf(":completion %d+%d=%d", u.PromptTokens, u.CompletionTokens, u.TotalTokens),
-	)
-	if u.PromptTokensDetails != nil && u.PromptTokensDetails.CachedTokens > 0 {
-		parts.Push(fmt.Sprintf(":cached %d", u.PromptTokensDetails.CachedTokens))
-	}
-	if u.CompletionTokensDetails != nil && u.CompletionTokensDetails.ReasoningTokens > 0 {
-		parts.Push(fmt.Sprintf(":reasoning %d", u.CompletionTokensDetails.ReasoningTokens))
-	}
-
-	fmt.Fprintf(os.Stderr, "\nCost: %s\n", strings.Join(parts, " "))
-}
-
 //////////////////////
 // CompletionReader //
-
-type CompletionReader interface {
-	ReadReasoning(string) error
-	ReadContent(string) error
-}
 
 type TerminalRenderer struct {
 	qry             *config.Query
@@ -177,7 +107,9 @@ type TerminalRenderer struct {
 	response        strings.Builder
 }
 
-func NewTerminalRenderer(qry *config.Query, teeFile, thoughtlessFile *utils.TeeFile) *TerminalRenderer {
+func NewTerminalRenderer(
+	qry *config.Query, teeFile, thoughtlessFile *utils.TeeFile,
+) *TerminalRenderer {
 	color := sysu.TerminalColorEnabled()
 	return &TerminalRenderer{
 		qry:             qry,
