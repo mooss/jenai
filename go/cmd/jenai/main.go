@@ -9,7 +9,6 @@ import (
 	"os/signal"
 	"path/filepath"
 	"slices"
-	"strings"
 	"syscall"
 
 	"github.com/mooss/bagend/go/cmd"
@@ -196,7 +195,7 @@ func runWithHooks(
 	onResponse func(string) error,
 ) error {
 	if qry.DumpConfig {
-		spec := noerr(modelSpec(qry))
+		spec := noerr(models.ParseSpec(qry.Model))
 		prettyPrint(map[string]any{
 			"model":  spec,
 			"config": qry,
@@ -247,7 +246,7 @@ func runWithHooks(
 // modelAndAPIKey resolves the model spec and API key for the query's model, applying the reasoning
 // override when requested.
 func modelAndAPIKey(qry *config.Query) (models.Spec, string, error) {
-	spec, err := modelSpec(qry)
+	spec, err := models.ParseSpec(qry.Model)
 	if err != nil {
 		return models.Spec{}, "", err
 	}
@@ -260,23 +259,6 @@ func modelAndAPIKey(qry *config.Query) (models.Spec, string, error) {
 	}
 
 	return spec, apiKey, nil
-}
-
-func modelSpec(qry *config.Query) (models.Spec, error) {
-	fromZoo := func() (models.Spec, error) { return models.Get(qry.Model) }
-
-	// Qualified name in provider:author/model formet.
-	provider, rest, found := strings.Cut(qry.Model, ":")
-	if !found {
-		return fromZoo()
-	}
-
-	author, model, found := strings.Cut(rest, "/")
-	if !found {
-		return fromZoo()
-	}
-
-	return models.Spec{Provider: provider, Author: author, Model: model}, nil
 }
 
 func setModelReasoning(qry *config.Query, spec *models.Spec) error {

@@ -47,7 +47,7 @@ func capaModelSpec(args []string) (models.Spec, error) {
 		return models.Spec{}, errors.New("usage: jenai capa MODEL")
 	}
 
-	spec, err := modelSpec(&config.Query{Model: args[0]})
+	spec, err := models.ParseSpec(args[0])
 	if err != nil {
 		return models.Spec{}, err
 	}
