@@ -16,6 +16,7 @@ import (
 	"github.com/mooss/bagend/go/flag"
 	"github.com/mooss/bagend/go/fun"
 	"github.com/mooss/jenai/go/config"
+	"github.com/mooss/jenai/go/llm/openrouter"
 	"github.com/mooss/jenai/go/models"
 	"github.com/mooss/jenai/go/prompts"
 )
@@ -299,7 +300,7 @@ func setModelReasoning(qry *config.Query, spec *models.Spec) error {
 	}
 
 	// Request effort is apparently not supported, checking upstream to be sure.
-	upd, err := NewSpecUpdater(qry).Updated(*spec)
+	upd, err := openrouter.NewModelUpdater(qry).Updated(*spec)
 	if err != nil {
 		return err
 	}

@@ -1,15 +1,10 @@
 package main
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"os"
-	"slices"
-	"strings"
 
-	"github.com/mooss/bagend/go/fun"
-	"github.com/mooss/bagend/go/fun/eager/lie"
 	"github.com/mooss/bagend/go/fun/eager/mae"
 	"github.com/mooss/jenai/go/config"
 	"github.com/mooss/jenai/go/llm/openrouter"
@@ -55,7 +50,7 @@ func regenModelZoo(qry *config.Query, args []string) (retErr error) {
 		return err
 	}
 
-	specup := NewSpecUpdater(qry)
+	specup := openrouter.NewModelUpdater(qry)
 	updated, err := mae.MapVE(specup.Updated, specs)
 	if err != nil {
 		return err
@@ -72,6 +67,8 @@ func regenModelZoo(qry *config.Query, args []string) (retErr error) {
 	return nil
 }
 
+// modelSpecsForRegen reads model specs from the given path, defaulting to the embedded specs if it
+// does not exist.
 func modelSpecsForRegen(path string) (map[string]models.Spec, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -81,77 +78,5 @@ func modelSpecsForRegen(path string) (map[string]models.Spec, error) {
 		return models.ModelSpecs()
 	}
 
-	specs, err := models.FromYAML(data)
-	if err == nil {
-		return specs, nil
-	}
-
-	warn := "could not load model specs from %q: %v; using embedded specs\n"
-	fmt.Fprintf(os.Stderr, warn, path, err)
-	return models.ModelSpecs()
-}
-
-///////////////////
-// Spec updating //
-
-type SpecUpdater struct {
-	ctx    context.Context
-	apiKey string
-}
-
-func NewSpecUpdater(qry *config.Query) SpecUpdater {
-	return SpecUpdater{
-		ctx:    context.Background(),
-		apiKey: qry.APIKeys["openrouter"],
-	}
-}
-
-func (su SpecUpdater) Updated(spec models.Spec) (models.Spec, error) {
-	if spec.Provider != "openrouter" {
-		msg := "unsupported provider %q for model %q"
-		return models.Spec{}, fmt.Errorf(msg, spec.Provider, spec.ShortName)
-	}
-
-	modelResponse, err := openrouter.FetchModel(su.ctx, spec, su.apiKey)
-	if err != nil {
-		return models.Spec{}, fmt.Errorf("fetch model %q: %w", spec.ShortName, err)
-	}
-
-	return models.Spec{
-		Provider:  spec.Provider,
-		Author:    spec.Author,
-		Model:     spec.Model,
-		Reasoning: buildReasoningSpec(spec, modelResponse),
-	}, nil
-}
-
-func buildReasoningSpec(
-	spec models.Spec, modelResponse openrouter.GetModelResponse,
-) *models.ReasoningSpec {
-	var res *models.ReasoningSpec
-	reasoning := modelResponse.Data.Reasoning
-	if reasoning == nil {
-		return res
-	}
-
-	updated := &models.ReasoningSpec{Effort: fun.ZeroDeref(reasoning.DefaultEffort)}
-	if reasoning.SupportedEfforts == nil {
-		updated.SupportedEfforts = strings.Split("max xhigh high medium low minimal", " ")
-		if !reasoning.Mandatory {
-			updated.SupportedEfforts = append(updated.SupportedEfforts, "none")
-		}
-	} else {
-		updated.SupportedEfforts = lie.MapFilter(fun.Identity, *reasoning.SupportedEfforts)
-	}
-
-	customDefault := fun.ZeroDeref(spec.Reasoning).Effort
-	if customDefault != "" && slices.Contains(updated.SupportedEfforts, customDefault) {
-		updated.Effort = customDefault // Maintain the custom default.
-	}
-
-	if len(updated.SupportedEfforts) > 0 || updated.Effort != "" {
-		res = updated
-	}
-
-	return res
+	return models.FromYAML(data)
 }
