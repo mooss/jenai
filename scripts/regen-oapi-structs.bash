@@ -30,7 +30,8 @@ function download-specs() {
     if [[ "$status" = 200 ]]; then
         if [[ -e "$RAWSPECS" ]]; then
             echo Updated $RAWSPECS:
-            diff -u "$RAWSPECS" "$tmp" || :
+            wc -l "$RAWSPECS" "$tmp"
+            du -sh "$RAWSPECS" "$tmp"
         else
             echo Downloaded $RAWSPECS for the first time.
         fi
