@@ -9,7 +9,7 @@ models:
         - high
         - low
         - none
-      default_effort: low
+      effort: low
   ds-pro:
     provider: openrouter
     author: ~deepseek
@@ -20,7 +20,7 @@ models:
         - high
         - low
         - none
-      default_effort: high
+      effort: high
   glm:
     provider: openrouter
     author: z-ai
@@ -30,7 +30,7 @@ models:
         - max
         - high
         - low
-      default_effort: high
+      effort: high
   glm-flash:
     provider: openrouter
     author: z-ai
@@ -40,7 +40,7 @@ models:
         - max
         - high
         - low
-      default_effort: high
+      effort: high
   kimi:
     provider: openrouter
     author: moonshotai
@@ -51,7 +51,7 @@ models:
         - high
         - low
         - none
-      default_effort: high
+      effort: high
   luna:
     provider: openrouter
     author: ~openai
@@ -64,7 +64,7 @@ models:
         - medium
         - low
         - none
-      default_effort: medium
+      effort: medium
   minimax3:
     provider: openrouter
     author: minimax
@@ -89,7 +89,7 @@ models:
         - high
         - medium
         - low
-      default_effort: medium
+      effort: medium
   spark:
     provider: openrouter
     author: meta
@@ -102,7 +102,7 @@ models:
         - medium
         - low
         - minimal
-      default_effort: medium
+      effort: medium
   terra:
     provider: openrouter
     author: ~openai
@@ -115,4 +115,4 @@ models:
         - medium
         - low
         - none
-      default_effort: medium
+      effort: medium

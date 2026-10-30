@@ -256,10 +256,9 @@ func modelAndAPIKey(qry *config.Query) (models.Spec, string, error) {
 			return models.Spec{}, "", fmt.Errorf(msg, qry.Effort, spec.QualifiedName())
 		}
 
-		supportedEfforts := append([]string(nil), spec.Reasoning.SupportedEfforts...)
 		spec.Reasoning = &models.ReasoningSpec{
-			SupportedEfforts: supportedEfforts,
-			DefaultEffort:    qry.Effort,
+			SupportedEfforts: spec.Reasoning.SupportedEfforts,
+			Effort:    qry.Effort,
 		}
 	}
 	apiKey := noerr(qry.APIKeyFor(spec.Provider))

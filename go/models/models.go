@@ -31,7 +31,7 @@ type Spec struct {
 // ReasoningSpec stores optional reasoning settings for a predefined model.
 type ReasoningSpec struct {
 	SupportedEfforts []string `yaml:"supported_efforts,omitempty"`
-	DefaultEffort    string   `yaml:"default_effort,omitempty"`
+	Effort           string   `yaml:"effort,omitempty"`
 }
 
 type Zoo struct {

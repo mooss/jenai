@@ -55,11 +55,8 @@ func regenModelZoo(qry *config.Query, args []string) (retErr error) {
 		return err
 	}
 
-	specup := specUpdater{
-		ctx:    context.Background(),
-		apiKey: qry.APIKeys["openrouter"],
-	}
-	updated, err := mae.MapVE(specup.update, specs)
+	specup := NewSpecUpdater(qry)
+	updated, err := mae.MapVE(specup.Updated, specs)
 	if err != nil {
 		return err
 	}
@@ -94,12 +91,22 @@ func modelSpecsForRegen(path string) (map[string]models.Spec, error) {
 	return models.ModelSpecs()
 }
 
-type specUpdater struct {
+///////////////////
+// Spec updating //
+
+type SpecUpdater struct {
 	ctx    context.Context
 	apiKey string
 }
 
-func (su specUpdater) update(spec models.Spec) (models.Spec, error) {
+func NewSpecUpdater(qry *config.Query) SpecUpdater {
+	return SpecUpdater{
+		ctx:    context.Background(),
+		apiKey: qry.APIKeys["openrouter"],
+	}
+}
+
+func (su SpecUpdater) Updated(spec models.Spec) (models.Spec, error) {
 	if spec.Provider != "openrouter" {
 		msg := "unsupported provider %q for model %q"
 		return models.Spec{}, fmt.Errorf(msg, spec.Provider, spec.ShortName)
@@ -129,7 +136,7 @@ func buildReasoningSpec(
 		return res
 	}
 
-	updated := &models.ReasoningSpec{DefaultEffort: fun.ZeroDeref(reasoning.DefaultEffort)}
+	updated := &models.ReasoningSpec{Effort: fun.ZeroDeref(reasoning.DefaultEffort)}
 	if reasoning.SupportedEfforts == nil {
 		updated.SupportedEfforts = strings.Split("max xhigh high medium low minimal", " ")
 		if !reasoning.Mandatory {
@@ -139,12 +146,12 @@ func buildReasoningSpec(
 		updated.SupportedEfforts = lie.MapFilter(fun.Identity, *reasoning.SupportedEfforts)
 	}
 
-	customDefault := fun.ZeroDeref(spec.Reasoning).DefaultEffort
+	customDefault := fun.ZeroDeref(spec.Reasoning).Effort
 	if customDefault != "" && slices.Contains(updated.SupportedEfforts, customDefault) {
-		updated.DefaultEffort = customDefault // Maintain the custom default.
+		updated.Effort = customDefault // Maintain the custom default.
 	}
 
-	if len(updated.SupportedEfforts) > 0 || updated.DefaultEffort != "" {
+	if len(updated.SupportedEfforts) > 0 || updated.Effort != "" {
 		res = updated
 	}
 

@@ -165,7 +165,7 @@ func newRequest(
 		return nil, fmt.Errorf(msg, spec.Provider, "openrouter")
 	}
 
-	effort := fun.ZeroDeref(spec.Reasoning).DefaultEffort
+	effort := fun.ZeroDeref(spec.Reasoning).Effort
 
 	body, err := json.Marshal(chatRequest{
 		Model:     spec.ID(),
