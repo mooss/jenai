@@ -26,39 +26,54 @@ func runCapa(qry *config.Query, args []string, source string) error {
 		return rawyaml(ctx, spec, apiKey)
 	case "overview":
 		return overview(ctx, spec, apiKey)
+	case "endpoints":
+		endpointsResponse, err := fetchEndpoints(ctx, spec, apiKey)
+		if err != nil {
+			return err
+		}
+		prettyPrint(endpointsResponse.Data.Endpoints)
+		return nil
 	}
 
-	endpointsResponse, err := fetchRecord[openrouter.ListEndpointsResponse](
-		ctx, modelURL(spec, "models")+"/endpoints", apiKey, "models endpoints",
-	)
+	modelResponse, err := fetchModel(ctx, spec, apiKey)
 	if err != nil {
 		return err
 	}
 
-	if source == "endpoints" {
-		endpoints := endpointsResponse.Data.Endpoints
-		prettyPrint(endpoints)
-		return nil
-	}
-
-	modelResponse, err := openrouter.FetchCatalogRecord[openrouter.GetModelResponse](
-		ctx, modelURL(spec, "model"), apiKey,
-	)
-	if err != nil {
-		return fmt.Errorf("openrouter: fetch model capabilities: %w", err)
-	}
-
-	endpointsResponse.Data.Endpoints = nil
-	prettyPrint(map[string]any{
-		"model":     modelResponse.Data,
-		"endpoints": endpointsResponse,
-	})
+	prettyPrint(modelResponse.Data)
 	return nil
 }
 
-func modelURL(spec models.Spec, resource string) string {
-	return "https://openrouter.ai/api/v1/" + resource + "/" +
+func fetchModel(
+	ctx context.Context, spec models.Spec, apiKey string,
+) (openrouter.GetModelResponse, error) {
+	recordURL := "https://openrouter.ai/api/v1/model/" +
 		url.PathEscape(spec.Author) + "/" + url.PathEscape(spec.Model)
+	record, err := openrouter.FetchCatalogRecord[openrouter.GetModelResponse](
+		ctx, recordURL, apiKey,
+	)
+	if err != nil {
+		return fun.Zero[openrouter.GetModelResponse](), fmt.Errorf(
+			"openrouter: fetch model capabilities: %w", err,
+		)
+	}
+	return record, nil
+}
+
+func fetchEndpoints(
+	ctx context.Context, spec models.Spec, apiKey string,
+) (openrouter.ListEndpointsResponse, error) {
+	recordURL := "https://openrouter.ai/api/v1/models/" +
+		url.PathEscape(spec.Author) + "/" + url.PathEscape(spec.Model) + "/endpoints"
+	record, err := openrouter.FetchCatalogRecord[openrouter.ListEndpointsResponse](
+		ctx, recordURL, apiKey,
+	)
+	if err != nil {
+		return fun.Zero[openrouter.ListEndpointsResponse](), fmt.Errorf(
+			"openrouter: fetch models endpoints capabilities: %w", err,
+		)
+	}
+	return record, nil
 }
 
 func capaModelSpec(args []string) (models.Spec, error) {
@@ -78,23 +93,13 @@ func capaModelSpec(args []string) (models.Spec, error) {
 	return spec, nil
 }
 
-func fetchRecord[T any](ctx context.Context, recordURL, apiKey, description string) (T, error) {
-	record, err := openrouter.FetchCatalogRecord[T](ctx, recordURL, apiKey)
-	if err != nil {
-		return fun.Zero[T](), fmt.Errorf("openrouter: fetch %s capabilities: %w", description, err)
-	}
-	return record, nil
-}
-
 func rawyaml(ctx context.Context, spec models.Spec, apiKey string) error {
-	endpoints, err := fetchRecord[any](
-		ctx, modelURL(spec, "models")+"/endpoints", apiKey, "models endpoints",
-	)
+	model, err := fetchModel(ctx, spec, apiKey)
 	if err != nil {
 		return err
 	}
 
-	model, err := fetchRecord[any](ctx, modelURL(spec, "model"), apiKey, "model")
+	endpoints, err := fetchEndpoints(ctx, spec, apiKey)
 	if err != nil {
 		return err
 	}
@@ -107,9 +112,7 @@ func rawyaml(ctx context.Context, spec models.Spec, apiKey string) error {
 }
 
 func overview(ctx context.Context, spec models.Spec, apiKey string) error {
-	modelResponse, err := fetchRecord[openrouter.GetModelResponse](
-		ctx, modelURL(spec, "model"), apiKey, "model",
-	)
+	modelResponse, err := fetchModel(ctx, spec, apiKey)
 	if err != nil {
 		return err
 	}
