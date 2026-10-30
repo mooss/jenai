@@ -8,32 +8,10 @@ import (
 	"path/filepath"
 
 	"github.com/mooss/jenai/go/config"
-	"github.com/mooss/jenai/go/models"
-	"github.com/mooss/jenai/go/prompts"
 )
 
 func ensureConfig() error {
-	alreadyExists, err := ensureConfigDir()
-	if err != nil {
-		return err
-	}
-	if alreadyExists {
-		return ensureConfigYaml()
-	}
-
-	dir, err := config.Root()
-	if err != nil {
-		return err
-	}
-	fmt.Println("Initialized config file in", dir)
-
-	err = writeConfigFile("models.yaml", models.EmbeddedBytes, 0644)
-	if err != nil {
-		return err
-	}
-
-	err = writeConfigFile("prompts.yaml", prompts.EmbeddedBytes, 0644)
-	if err != nil {
+	if err := ensureConfigDir(); err != nil {
 		return err
 	}
 
@@ -47,17 +25,15 @@ func ensureConfigYaml() error {
 	}
 	cfgPath := filepath.Join(dir, "config.yaml")
 
-	exists, ferr := fileExists(cfgPath)
-	if ferr != nil {
-		return ferr
-	}
-	if !exists {
+	info, err := os.Stat(cfgPath)
+	if os.IsNotExist(err) {
 		return writeConfigFile("config.yaml", []byte{}, 0600)
+	} else if err != nil {
+		return err
 	}
 
-	info, err := os.Stat(cfgPath)
-	if err != nil {
-		return err
+	if !info.Mode().IsRegular() {
+		return fmt.Errorf("config file %q is not a regular file", cfgPath)
 	}
 
 	if info.Mode().Perm() != 0600 {
@@ -74,26 +50,26 @@ func ensureConfigYaml() error {
 }
 
 // ensureConfigDir tests if the directory already exists and creates it if it doesn't.
-// Returns true when the directory already exists.
-func ensureConfigDir() (bool, error) {
+func ensureConfigDir() error {
 	dir, err := config.Root()
 	if err != nil {
-		return false, err
+		return err
 	}
 
-	exists, err := fileExists(dir)
-	if err != nil {
-		return false, err
-	}
-
-	if exists {
-		return true, ensureConfigDirPermissions(dir)
+	info, err := os.Stat(dir)
+	if err == nil {
+		if !info.IsDir() {
+			return fmt.Errorf("config path %q exists but is not a directory", dir)
+		}
+		return ensureConfigDirPermissions(dir)
+	} else if !os.IsNotExist(err) {
+		return err
 	}
 
 	if err := os.MkdirAll(dir, 0700); err != nil {
-		return false, fmt.Errorf("failed to create config dir: %w", err)
+		return fmt.Errorf("failed to create config dir: %w", err)
 	}
-	return false, nil
+	return nil
 }
 
 func ensureConfigDirPermissions(dir string) error {
@@ -125,17 +101,4 @@ func writeConfigFile(path string, data []byte, perm os.FileMode) error {
 		return fmt.Errorf("failed to write %s: %w", path, err)
 	}
 	return nil
-}
-
-func fileExists(filename string) (bool, error) {
-	_, err := os.Stat(filename)
-	if err == nil {
-		return true, nil
-	}
-
-	if os.IsNotExist(err) {
-		err = nil
-	}
-
-	return false, err
 }
