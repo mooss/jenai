@@ -13,6 +13,9 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+////////////////
+// Conversion //
+
 // FromYAML unmarshalls YAML data to the given type.
 func FromYAML[T any](data []byte) (T, error) {
 	var res T
@@ -52,6 +55,9 @@ func ToYAML[T any](source T) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
+////////////
+// Errors //
+
 // Wrapf wraps a non-nil err and prefixes it with a formatted string.
 // It is meant to be a shortcut for wrapping a 2-value error result.
 func Wrapf[T any](res T, err error, format string, args ...any) (T, error) {
@@ -61,6 +67,9 @@ func Wrapf[T any](res T, err error, format string, args ...any) (T, error) {
 
 	return res, nil
 }
+
+//////////
+// Misc //
 
 // OnceErr returns a function that calls mk exactly once and caches the result.
 // Subsequent calls will return the cached value.
@@ -79,6 +88,9 @@ func OnceErr[T any](mk func() (T, error)) func() (T, error) {
 		return res.value, res.err
 	}
 }
+
+/////////////
+// TeeFile //
 
 // TeeFile is a buffered file writer that warns to stderr but never fails.
 // Write and Finish are safe to call on nil and after failure/close.

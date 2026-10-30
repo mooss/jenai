@@ -115,20 +115,21 @@ func overview(ctx context.Context, spec models.Spec, apiKey string) error {
 	}
 
 	model := modelResponse.Data
+	//revive:disable:line-length-limit
 	prettyPrint(struct {
-		CanonicalSlug    any `yaml:"canonical_slug"`
-		Name             any `yaml:"name"`
-		Pricing          any `yaml:"pricing"`
-		ContextLength    any `yaml:"context_length"`
-		InputModalities  any `yaml:"input_modalities"`
-		OutputModalities any `yaml:"output_modalities"`
-		Description      any `yaml:"description"`
-		AliasTarget      any `yaml:"alias_target"`
-		Reasoning        any `yaml:"reasoning"`
+		CanonicalSlug    any              `json:"canonical_slug,omitempty" yaml:"canonical_slug,omitempty"`
+		Name             any              `json:"name,omitempty" yaml:"name,omitempty"`
+		Pricing          *pricingOverview `json:"pricing,omitempty" yaml:"pricing,omitempty"`
+		ContextLength    any              `json:"context_length,omitempty" yaml:"context_length,omitempty"`
+		InputModalities  any              `json:"input_modalities,omitempty" yaml:"input_modalities,omitempty"`
+		OutputModalities any              `json:"output_modalities,omitempty" yaml:"output_modalities,omitempty"`
+		Description      any              `json:"description,omitempty" yaml:"description,omitempty"`
+		AliasTarget      any              `json:"alias_target,omitempty" yaml:"alias_target,omitempty"`
+		Reasoning        any              `json:"reasoning,omitempty" yaml:"reasoning,omitempty"`
 	}{
 		CanonicalSlug:    model.CanonicalSlug,
 		Name:             model.Name,
-		Pricing:          model.Pricing,
+		Pricing:          textPricing(model.Pricing),
 		ContextLength:    model.ContextLength,
 		InputModalities:  model.Architecture.InputModalities,
 		OutputModalities: model.Architecture.OutputModalities,
