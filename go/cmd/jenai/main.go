@@ -250,18 +250,14 @@ func modelAndAPIKey(qry *config.Query) (models.Spec, string, error) {
 	if err != nil {
 		return models.Spec{}, "", err
 	}
-	if qry.Effort != "" {
-		if !slices.Contains(fun.ZeroDeref(spec.Reasoning).SupportedEfforts, qry.Effort) {
-			msg := "reasoning effort %q is not supported by model %q"
-			return models.Spec{}, "", fmt.Errorf(msg, qry.Effort, spec.QualifiedName())
-		}
-
-		spec.Reasoning = &models.ReasoningSpec{
-			SupportedEfforts: spec.Reasoning.SupportedEfforts,
-			Effort:    qry.Effort,
-		}
+	if err := setModelReasoning(qry, &spec); err != nil {
+		return models.Spec{}, "", err
 	}
-	apiKey := noerr(qry.APIKeyFor(spec.Provider))
+	apiKey, err := qry.APIKeyFor(spec.Provider)
+	if err != nil {
+		return models.Spec{}, "", err
+	}
+
 	return spec, apiKey, nil
 }
 
@@ -280,4 +276,39 @@ func modelSpec(qry *config.Query) (models.Spec, error) {
 	}
 
 	return models.Spec{Provider: provider, Author: author, Model: model}, nil
+}
+
+func setModelReasoning(qry *config.Query, spec *models.Spec) error {
+	if qry.Effort == "" {
+		return nil
+	}
+
+	doset := func() bool {
+		reasoning := fun.ZeroDeref(spec.Reasoning)
+		if slices.Contains(reasoning.SupportedEfforts, qry.Effort) {
+			spec.Reasoning = &models.ReasoningSpec{
+				SupportedEfforts: reasoning.SupportedEfforts,
+				Effort:           qry.Effort,
+			}
+			return true
+		}
+		return false
+	}
+	if doset() {
+		return nil
+	}
+
+	// Request effort is apparently not supported, checking upstream to be sure.
+	upd, err := NewSpecUpdater(qry).Updated(*spec)
+	if err != nil {
+		return err
+	}
+	*spec = upd
+
+	if doset() {
+		return nil
+	}
+
+	msg := "reasoning effort %q is not supported by model %q"
+	return fmt.Errorf(msg, qry.Effort, spec.QualifiedName())
 }
