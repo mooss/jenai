@@ -1,4 +1,4 @@
-.PHONY: nothing test go-test bash-test lint install install-debug
+.PHONY: nothing test go-test bash-test lint install install-debug clean-install
 
 nothing:
 	@echo -n 'jen '
@@ -8,22 +8,25 @@ test:
 	@$(MAKE) go-test bash-test
 
 go-test:
-	go test ./go/...
+	@go test ./go/...
 
 bash-test:
-	./tests/context_tests.bash
+	@./tests/context_tests.bash
 
 lint:
-	golangci-lint run ./go/...\
+	@golangci-lint run ./go/...\
 	  --max-issues-per-linter 0\
 	  --max-same-issues 0\
 	  --allow-parallel-runners
 
 update-bagend:
-	go get github.com/mooss/bagend && go mod tidy
+	@go get github.com/mooss/bagend && go mod tidy
 
 install:
-	go install ./go/cmd/jenai
+	@go install ./go/cmd/jenai
 
 install-debug:
-	go install -gcflags="all=-N -l" ./go/cmd/jenai
+	@go install -gcflags="all=-N -l" ./go/cmd/jenai
+
+clean-install:
+	@./scripts/clean-install.bash $(COMMIT)
