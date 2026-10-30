@@ -1,4 +1,4 @@
-package main
+package openrouter
 
 import (
 	"math/big"
@@ -8,10 +8,10 @@ import (
 	"github.com/mooss/jenai/go/llm/openrouter/generated"
 )
 
-// pricingOverview shows text token prices in cents per million tokens (¢/1M).
+// PricingOverview shows text token prices in cents per million tokens (¢/1M).
 //
 //revive:disable:line-length-limit
-type pricingOverview struct {
+type PricingOverview struct {
 	Prompt            *string `json:"prompt,omitempty" yaml:"prompt,omitempty"`
 	Completion        *string `json:"completion,omitempty" yaml:"completion,omitempty"`
 	InputCacheRead    *string `json:"input_cache_read,omitempty" yaml:"input_cache_read,omitempty"`
@@ -20,9 +20,9 @@ type pricingOverview struct {
 	InternalReasoning *string `json:"internal_reasoning,omitempty" yaml:"internal_reasoning,omitempty"`
 }
 
-func textPricing(p generated.GetModelResponseX200DataPricing) *pricingOverview {
+func TextPricing(p generated.GetModelResponseX200DataPricing) *PricingOverview {
 	deref := fun.ZeroDeref[string]
-	return &pricingOverview{
+	return &PricingOverview{
 		Prompt:            centsPerMillion(p.Prompt),
 		Completion:        centsPerMillion(p.Completion),
 		InputCacheRead:    centsPerMillion(deref(p.InputCacheRead)),

@@ -4,9 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"net/url"
 
-	"github.com/mooss/bagend/go/fun"
 	"github.com/mooss/jenai/go/config"
 	"github.com/mooss/jenai/go/llm/openrouter"
 	"github.com/mooss/jenai/go/models"
@@ -27,7 +25,7 @@ func runCapa(qry *config.Query, args []string, source string) error {
 	case "overview":
 		return overview(ctx, spec, apiKey)
 	case "endpoints":
-		endpointsResponse, err := fetchEndpoints(ctx, spec, apiKey)
+		endpointsResponse, err := openrouter.FetchEndpoints(ctx, spec, apiKey)
 		if err != nil {
 			return err
 		}
@@ -35,45 +33,13 @@ func runCapa(qry *config.Query, args []string, source string) error {
 		return nil
 	}
 
-	modelResponse, err := fetchModel(ctx, spec, apiKey)
+	modelResponse, err := openrouter.FetchModel(ctx, spec, apiKey)
 	if err != nil {
 		return err
 	}
 
 	prettyPrint(modelResponse.Data)
 	return nil
-}
-
-func fetchModel(
-	ctx context.Context, spec models.Spec, apiKey string,
-) (openrouter.GetModelResponse, error) {
-	recordURL := "https://openrouter.ai/api/v1/model/" +
-		url.PathEscape(spec.Author) + "/" + url.PathEscape(spec.Model)
-	record, err := openrouter.FetchCatalogRecord[openrouter.GetModelResponse](
-		ctx, recordURL, apiKey,
-	)
-	if err != nil {
-		return fun.Zero[openrouter.GetModelResponse](), fmt.Errorf(
-			"openrouter: fetch model capabilities: %w", err,
-		)
-	}
-	return record, nil
-}
-
-func fetchEndpoints(
-	ctx context.Context, spec models.Spec, apiKey string,
-) (openrouter.ListEndpointsResponse, error) {
-	recordURL := "https://openrouter.ai/api/v1/models/" +
-		url.PathEscape(spec.Author) + "/" + url.PathEscape(spec.Model) + "/endpoints"
-	record, err := openrouter.FetchCatalogRecord[openrouter.ListEndpointsResponse](
-		ctx, recordURL, apiKey,
-	)
-	if err != nil {
-		return fun.Zero[openrouter.ListEndpointsResponse](), fmt.Errorf(
-			"openrouter: fetch models endpoints capabilities: %w", err,
-		)
-	}
-	return record, nil
 }
 
 func capaModelSpec(args []string) (models.Spec, error) {
@@ -94,12 +60,12 @@ func capaModelSpec(args []string) (models.Spec, error) {
 }
 
 func rawyaml(ctx context.Context, spec models.Spec, apiKey string) error {
-	model, err := fetchModel(ctx, spec, apiKey)
+	model, err := openrouter.FetchModel(ctx, spec, apiKey)
 	if err != nil {
 		return err
 	}
 
-	endpoints, err := fetchEndpoints(ctx, spec, apiKey)
+	endpoints, err := openrouter.FetchEndpoints(ctx, spec, apiKey)
 	if err != nil {
 		return err
 	}
@@ -112,7 +78,7 @@ func rawyaml(ctx context.Context, spec models.Spec, apiKey string) error {
 }
 
 func overview(ctx context.Context, spec models.Spec, apiKey string) error {
-	modelResponse, err := fetchModel(ctx, spec, apiKey)
+	modelResponse, err := openrouter.FetchModel(ctx, spec, apiKey)
 	if err != nil {
 		return err
 	}
@@ -120,19 +86,19 @@ func overview(ctx context.Context, spec models.Spec, apiKey string) error {
 	model := modelResponse.Data
 	//revive:disable:line-length-limit
 	prettyPrint(struct {
-		CanonicalSlug    any              `json:"canonical_slug,omitempty" yaml:"canonical_slug,omitempty"`
-		Name             any              `json:"name,omitempty" yaml:"name,omitempty"`
-		Pricing          *pricingOverview `json:"pricing,omitempty" yaml:"pricing,omitempty"`
-		ContextLength    any              `json:"context_length,omitempty" yaml:"context_length,omitempty"`
-		InputModalities  any              `json:"input_modalities,omitempty" yaml:"input_modalities,omitempty"`
-		OutputModalities any              `json:"output_modalities,omitempty" yaml:"output_modalities,omitempty"`
-		Description      any              `json:"description,omitempty" yaml:"description,omitempty"`
-		AliasTarget      any              `json:"alias_target,omitempty" yaml:"alias_target,omitempty"`
-		Reasoning        any              `json:"reasoning,omitempty" yaml:"reasoning,omitempty"`
+		CanonicalSlug    any                         `json:"canonical_slug,omitempty" yaml:"canonical_slug,omitempty"`
+		Name             any                         `json:"name,omitempty" yaml:"name,omitempty"`
+		Pricing          *openrouter.PricingOverview `json:"pricing,omitempty" yaml:"pricing,omitempty"`
+		ContextLength    any                         `json:"context_length,omitempty" yaml:"context_length,omitempty"`
+		InputModalities  any                         `json:"input_modalities,omitempty" yaml:"input_modalities,omitempty"`
+		OutputModalities any                         `json:"output_modalities,omitempty" yaml:"output_modalities,omitempty"`
+		Description      any                         `json:"description,omitempty" yaml:"description,omitempty"`
+		AliasTarget      any                         `json:"alias_target,omitempty" yaml:"alias_target,omitempty"`
+		Reasoning        any                         `json:"reasoning,omitempty" yaml:"reasoning,omitempty"`
 	}{
 		CanonicalSlug:    model.CanonicalSlug,
 		Name:             model.Name,
-		Pricing:          textPricing(model.Pricing),
+		Pricing:          openrouter.TextPricing(model.Pricing),
 		ContextLength:    model.ContextLength,
 		InputModalities:  model.Architecture.InputModalities,
 		OutputModalities: model.Architecture.OutputModalities,

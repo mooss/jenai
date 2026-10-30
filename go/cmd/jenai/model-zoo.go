@@ -112,7 +112,7 @@ func (su SpecUpdater) Updated(spec models.Spec) (models.Spec, error) {
 		return models.Spec{}, fmt.Errorf(msg, spec.Provider, spec.ShortName)
 	}
 
-	modelResponse, err := fetchModel(su.ctx, spec, su.apiKey)
+	modelResponse, err := openrouter.FetchModel(su.ctx, spec, su.apiKey)
 	if err != nil {
 		return models.Spec{}, fmt.Errorf("fetch model %q: %w", spec.ShortName, err)
 	}
