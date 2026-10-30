@@ -1,16 +1,14 @@
 // This file bootstraps and secures the config dir.
 
-package main
+package config
 
 import (
 	"fmt"
 	"os"
 	"path/filepath"
-
-	"github.com/mooss/jenai/go/config"
 )
 
-func ensureConfig() error {
+func EnsureProperSetup() error {
 	if err := ensureConfigDir(); err != nil {
 		return err
 	}
@@ -19,7 +17,7 @@ func ensureConfig() error {
 }
 
 func ensureConfigYaml() error {
-	dir, err := config.Root()
+	dir, err := Root()
 	if err != nil {
 		return err
 	}
@@ -51,7 +49,7 @@ func ensureConfigYaml() error {
 
 // ensureConfigDir tests if the directory already exists and creates it if it doesn't.
 func ensureConfigDir() error {
-	dir, err := config.Root()
+	dir, err := Root()
 	if err != nil {
 		return err
 	}
@@ -93,7 +91,7 @@ func ensureConfigDirPermissions(dir string) error {
 }
 
 func writeConfigFile(path string, data []byte, perm os.FileMode) error {
-	dir, err := config.Root()
+	dir, err := Root()
 	if err != nil {
 		return err
 	}

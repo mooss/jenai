@@ -21,7 +21,7 @@ import (
 )
 
 func main() {
-	if err := ensureConfig(); err != nil {
+	if err := config.EnsureProperSetup(); err != nil {
 		fatal(err)
 	}
 
