@@ -41,19 +41,25 @@ func streamAndDisplay(
 	defer d.printCost()
 
 	chunks, errs, err := openrouter.StreamCompletion(ctx, spec, apiKey, promptStr)
-	noerr0(err)
+	if err != nil {
+		return "", err
+	}
 
 	for chunk := range chunks {
-		d.handleChunk(chunk)
+		if err := d.handleChunk(chunk); err != nil {
+			return "", err
+		}
 	}
-	streamErr := <-errs
-
-	noerr0(streamErr)
+	if streamErr := <-errs; streamErr != nil {
+		return "", streamErr
+	}
 
 	if d.stdoutThink.unclosed() {
-		noerr0(errors.New("reasoning never closed"))
+		return "", errors.New("reasoning never closed")
 	}
-	d.finish()
+	if err := d.finish(); err != nil {
+		return "", err
+	}
 
 	return d.response.String(), nil
 }
@@ -118,21 +124,28 @@ func renderAndDisplayMarkdown(content string) error {
 	return errors.Join(render(pagerStdin), pagerStdin.Close(), pager.Wait())
 }
 
-func (d *display) onReasoning(s string) {
+func (d *display) onReasoning(s string) error {
 	if d.teeFile.IsOpen() {
 		d.teeThink.open(func() { d.teeFile.Write("<think>\n") })
 		d.teeFile.Write(s)
 	}
 	if d.qry.Thoughtless {
-		return
+		return nil
 	}
+	var openErr error
 	d.stdoutThink.open(func() {
-		fmt.Fprint(os.Stdout, d.reasoningOutput.ColorizeTag("<think>"), "\n")
+		tag := d.reasoningOutput.ColorizeTag("<think>")
+		if _, err := fmt.Fprint(os.Stdout, tag, "\n"); err != nil {
+			openErr = err
+		}
 	})
-	noerr0(d.reasoningOutput.Write(s))
+	if openErr != nil {
+		return openErr
+	}
+	return d.reasoningOutput.Write(s)
 }
 
-func (d *display) onContent(s string) {
+func (d *display) onContent(s string) error {
 	if d.teeFile.IsOpen() {
 		d.teeThink.close(func() { d.teeFile.Write("\n</think>\n") })
 		d.teeFile.Write(s)
@@ -141,41 +154,61 @@ func (d *display) onContent(s string) {
 		d.thoughtlessFile.Write(s)
 	}
 	if !d.qry.Thoughtless {
+		var closeErr error
 		d.stdoutThink.close(func() {
-			noerr0(d.reasoningOutput.Flush())
-			fmt.Fprint(os.Stdout, "\n", d.reasoningOutput.ColorizeTag("</think>"), "\n\n")
+			if err := d.reasoningOutput.Flush(); err != nil {
+				closeErr = err
+				return
+			}
+			tag := d.reasoningOutput.ColorizeTag("</think>")
+			if _, err := fmt.Fprint(os.Stdout, "\n", tag, "\n\n"); err != nil {
+				closeErr = err
+			}
 		})
+		if closeErr != nil {
+			return closeErr
+		}
 	}
 	d.endsWithNewline = strings.HasSuffix(s, "\n")
-	noerr0(d.output.Write(s))
+	return d.output.Write(s)
 }
 
-func (d *display) handleChunk(chunk openrouter.Chunk) {
+func (d *display) handleChunk(chunk openrouter.Chunk) error {
 	if chunk.Usage != nil {
 		d.usage = chunk.Usage
 	}
 	if len(chunk.Choices) == 0 {
 		if chunk.Usage != nil {
-			return // Expected final usage-only chunk from `IncludeUsage: true`.
+			return nil // Expected final usage-only chunk from `IncludeUsage: true`.
 		}
-		fmt.Fprintln(os.Stderr, "warning: chunk with empty choices and no usage")
-		return
+		msg := "warning: chunk with empty choices and no usage"
+		if _, err := fmt.Fprintln(os.Stderr, msg); err != nil {
+			return err
+		}
+		return nil
 	}
 	c := chunk.Choices[0]
 	if c.Delta.Reasoning != "" {
-		d.onReasoning(c.Delta.Reasoning)
+		if err := d.onReasoning(c.Delta.Reasoning); err != nil {
+			return err
+		}
 	}
 	if c.Delta.Content != "" {
 		d.response.WriteString(c.Delta.Content)
-		d.onContent(c.Delta.Content)
+		if err := d.onContent(c.Delta.Content); err != nil {
+			return err
+		}
 	}
+	return nil
 }
 
-func (d *display) finish() {
+func (d *display) finish() error {
 	if !d.endsWithNewline {
-		d.onContent("\n")
+		if err := d.onContent("\n"); err != nil {
+			return err
+		}
 	}
-	noerr0(d.output.Flush())
+	return d.output.Flush()
 }
 
 func (d *display) printCost() {
