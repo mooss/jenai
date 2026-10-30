@@ -232,7 +232,7 @@ func runWithHooks(
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	response, err := streamAndDisplay(ctx, qry, spec, apiKey, prompt, prompt.String())
+	response, err := streamAndDisplay(ctx, qry, spec, apiKey, prompt)
 	if err != nil {
 		return err
 	}

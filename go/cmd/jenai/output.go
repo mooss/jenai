@@ -22,8 +22,7 @@ import (
 )
 
 func streamAndDisplay(
-	ctx context.Context, qry *config.Query, spec models.Spec, apiKey string,
-	prompt config.Prompt, promptStr string,
+	ctx context.Context, qry *config.Query, spec models.Spec, apiKey string, prompt config.Prompt,
 ) (string, error) {
 	teePath := canonicalTeePath(qry.TeeFile)
 	thoughtlessPath := canonicalTeePath(qry.ThoughtlessTeeFile)
@@ -37,63 +36,30 @@ func streamAndDisplay(
 	thoughtlessFile := utils.OpenTeeFile(thoughtlessPath)
 	defer thoughtlessFile.Finish()
 
-	d := newDisplay(qry, teeFile, thoughtlessFile)
-	defer d.printCost()
+	out := NewTerminalRenderer(qry, teeFile, thoughtlessFile)
+	streamer := Streamer{consumer: out}
+	defer streamer.printCost()
 
-	chunks, errs, err := openrouter.StreamCompletion(ctx, spec, apiKey, promptStr)
+	chunks, errs, err := openrouter.StreamCompletion(ctx, spec, apiKey, prompt.String())
 	if err != nil {
 		return "", err
 	}
 
-	for chunk := range chunks {
-		if err := d.handleChunk(chunk); err != nil {
-			return "", err
-		}
-	}
-	if streamErr := <-errs; streamErr != nil {
-		return "", streamErr
-	}
-
-	if d.stdoutThink.unclosed() {
-		return "", errors.New("reasoning never closed")
-	}
-	if err := d.finish(); err != nil {
+	if err := streamer.Stream(chunks, errs); err != nil {
 		return "", err
 	}
 
-	return d.response.String(), nil
-}
-
-/////////////
-// display //
-
-type display struct {
-	qry             *config.Query
-	output          *highlight.MarkdownStreamer
-	reasoningOutput *highlight.MarkdownStreamer
-	teeFile         *utils.TeeFile
-	thoughtlessFile *utils.TeeFile
-	stdoutThink     thinkGuard
-	teeThink        thinkGuard
-	endsWithNewline bool
-	response        strings.Builder
-	usage           *openrouter.Usage
-}
-
-func newDisplay(qry *config.Query, teeFile, thoughtlessFile *utils.TeeFile) *display {
-	color := sysu.TerminalColorEnabled()
-	return &display{
-		qry:             qry,
-		output:          highlight.NewMarkdownStreamer(os.Stdout, color),
-		reasoningOutput: highlight.NewMarkdownStreamer(os.Stdout, color),
-		teeFile:         teeFile,
-		thoughtlessFile: thoughtlessFile,
-		endsWithNewline: true, // True by default to avoid always calling onContent.
+	if out.UnclosedReasoning() {
+		return "", errors.New("reasoning never closed")
 	}
+	if err := out.Finish(); err != nil {
+		return "", err
+	}
+
+	return out.Response(), nil
 }
 
 // renderAndDisplayMarkdown renders Markdown content with syntax highlighting and displays it.
-//
 // If both stdout are connected to a terminal, the rendered content is streamed to less.
 func renderAndDisplayMarkdown(content string) error {
 	render := func(writer io.Writer) error {
@@ -124,98 +90,55 @@ func renderAndDisplayMarkdown(content string) error {
 	return errors.Join(render(pagerStdin), pagerStdin.Close(), pager.Wait())
 }
 
-func (d *display) onReasoning(s string) error {
-	if d.teeFile.IsOpen() {
-		d.teeThink.open(func() { d.teeFile.Write("<think>\n") })
-		d.teeFile.Write(s)
-	}
-	if d.qry.Thoughtless {
-		return nil
-	}
-	var openErr error
-	d.stdoutThink.open(func() {
-		tag := d.reasoningOutput.ColorizeTag("<think>")
-		if _, err := fmt.Fprint(os.Stdout, tag, "\n"); err != nil {
-			openErr = err
-		}
-	})
-	if openErr != nil {
-		return openErr
-	}
-	return d.reasoningOutput.Write(s)
+//////////////
+// Streamer //
+
+type Streamer struct {
+	usage    *openrouter.Usage
+	consumer CompletionReader
 }
 
-func (d *display) onContent(s string) error {
-	if d.teeFile.IsOpen() {
-		d.teeThink.close(func() { d.teeFile.Write("\n</think>\n") })
-		d.teeFile.Write(s)
-	}
-	if d.thoughtlessFile.IsOpen() {
-		d.thoughtlessFile.Write(s)
-	}
-	if !d.qry.Thoughtless {
-		var closeErr error
-		d.stdoutThink.close(func() {
-			if err := d.reasoningOutput.Flush(); err != nil {
-				closeErr = err
-				return
-			}
-			tag := d.reasoningOutput.ColorizeTag("</think>")
-			if _, err := fmt.Fprint(os.Stdout, "\n", tag, "\n\n"); err != nil {
-				closeErr = err
-			}
-		})
-		if closeErr != nil {
-			return closeErr
+func (r* Streamer) Stream(chunks <-chan openrouter.Chunk, errs <-chan error) error {
+	for chunk := range chunks {
+		if err := r.handleChunk(chunk); err != nil {
+			return err
 		}
 	}
-	d.endsWithNewline = strings.HasSuffix(s, "\n")
-	return d.output.Write(s)
+
+	return <-errs
 }
 
-func (d *display) handleChunk(chunk openrouter.Chunk) error {
+func (r *Streamer) handleChunk(chunk openrouter.Chunk) error {
 	if chunk.Usage != nil {
-		d.usage = chunk.Usage
+		r.usage = chunk.Usage
 	}
 	if len(chunk.Choices) == 0 {
-		if chunk.Usage != nil {
-			return nil // Expected final usage-only chunk from `IncludeUsage: true`.
+		if chunk.Usage == nil { // Expected final usage-only chunk.
+			fmt.Fprintln(os.Stderr, "warning: chunk with empty choices and no usage")
 		}
-		msg := "warning: chunk with empty choices and no usage"
-		if _, err := fmt.Fprintln(os.Stderr, msg); err != nil {
-			return err
-		}
+
 		return nil
 	}
-	c := chunk.Choices[0]
-	if c.Delta.Reasoning != "" {
-		if err := d.onReasoning(c.Delta.Reasoning); err != nil {
+
+	delta := chunk.Choices[0].Delta
+	if delta.Reasoning != "" {
+		if err := r.consumer.ReadReasoning(delta.Reasoning); err != nil {
 			return err
 		}
 	}
-	if c.Delta.Content != "" {
-		d.response.WriteString(c.Delta.Content)
-		if err := d.onContent(c.Delta.Content); err != nil {
+	if delta.Content != "" {
+		if err := r.consumer.ReadContent(delta.Content); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (d *display) finish() error {
-	if !d.endsWithNewline {
-		if err := d.onContent("\n"); err != nil {
-			return err
-		}
-	}
-	return d.output.Flush()
-}
-
-func (d *display) printCost() {
-	if d.usage == nil {
+func (r *Streamer) printCost() {
+	if r.usage == nil {
 		return
 	}
-	u := d.usage
+	u := r.usage
 	costStr := "¢? (unavailable)"
 	if u.Cost != nil {
 		costStr = fmt.Sprintf("¢%.4f", 100*(*u.Cost))
@@ -232,6 +155,109 @@ func (d *display) printCost() {
 	}
 
 	fmt.Fprintf(os.Stderr, "\nCost: %s\n", strings.Join(parts, " "))
+}
+
+//////////////////////
+// CompletionReader //
+
+type CompletionReader interface {
+	ReadReasoning(string) error
+	ReadContent(string) error
+}
+
+type TerminalRenderer struct {
+	qry             *config.Query
+	output          *highlight.MarkdownStreamer
+	reasoningOutput *highlight.MarkdownStreamer
+	teeFile         *utils.TeeFile
+	thoughtlessFile *utils.TeeFile
+	stdoutThink     thinkGuard
+	teeThink        thinkGuard
+	endsWithNewline bool
+	response        strings.Builder
+}
+
+func NewTerminalRenderer(qry *config.Query, teeFile, thoughtlessFile *utils.TeeFile) *TerminalRenderer {
+	color := sysu.TerminalColorEnabled()
+	return &TerminalRenderer{
+		qry:             qry,
+		output:          highlight.NewMarkdownStreamer(os.Stdout, color),
+		reasoningOutput: highlight.NewMarkdownStreamer(os.Stdout, color),
+		teeFile:         teeFile,
+		thoughtlessFile: thoughtlessFile,
+		endsWithNewline: true, // True by default to avoid always calling onContent.
+	}
+}
+
+func (r *TerminalRenderer) ReadReasoning(s string) error {
+	if r.teeFile.IsOpen() {
+		r.teeThink.open(func() { r.teeFile.Write("<think>\n") })
+		r.teeFile.Write(s)
+	}
+	if r.qry.Thoughtless {
+		return nil
+	}
+	var openErr error
+	r.stdoutThink.open(func() {
+		tag := r.reasoningOutput.ColorizeTag("<think>")
+		if _, err := fmt.Fprint(os.Stdout, tag, "\n"); err != nil {
+			openErr = err
+		}
+	})
+	if openErr != nil {
+		return openErr
+	}
+	return r.reasoningOutput.Write(s)
+}
+
+func (r *TerminalRenderer) ReadContent(s string) error {
+	r.response.WriteString(s)
+	return r.writeContent(s)
+}
+
+func (r *TerminalRenderer) writeContent(s string) error {
+	if r.teeFile.IsOpen() {
+		r.teeThink.close(func() { r.teeFile.Write("\n</think>\n") })
+		r.teeFile.Write(s)
+	}
+	if r.thoughtlessFile.IsOpen() {
+		r.thoughtlessFile.Write(s)
+	}
+	if !r.qry.Thoughtless {
+		var closeErr error
+		r.stdoutThink.close(func() {
+			if err := r.reasoningOutput.Flush(); err != nil {
+				closeErr = err
+				return
+			}
+			tag := r.reasoningOutput.ColorizeTag("</think>")
+			if _, err := fmt.Fprint(os.Stdout, "\n", tag, "\n\n"); err != nil {
+				closeErr = err
+			}
+		})
+		if closeErr != nil {
+			return closeErr
+		}
+	}
+	r.endsWithNewline = strings.HasSuffix(s, "\n")
+	return r.output.Write(s)
+}
+
+func (r *TerminalRenderer) Response() string {
+	return r.response.String()
+}
+
+func (r *TerminalRenderer) UnclosedReasoning() bool {
+	return r.stdoutThink.unclosed()
+}
+
+func (r *TerminalRenderer) Finish() error {
+	if !r.endsWithNewline {
+		if err := r.writeContent("\n"); err != nil {
+			return err
+		}
+	}
+	return r.output.Flush()
 }
 
 ////////////////
