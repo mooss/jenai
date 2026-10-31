@@ -113,7 +113,7 @@ func (fs *Fileset) writeSection(
 	return nil
 }
 
-//revive:disable:line-length-limit,flag-parameter
+//revive:disable:line-length-limit
 func (fs *Fileset) writeSectionHeader(buf *bytes.Buffer, title string, linum bool, first bool) {
 	if !first {
 		buf.WriteRune('\n')
