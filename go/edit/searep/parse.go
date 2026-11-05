@@ -55,11 +55,20 @@ func Parse(response string) ([]Block, error) {
 		}
 		i = next + 1
 
-		// Closing code block fence.
-		if i >= len(lines) || !strings.HasPrefix(lines[i], "```") {
-			return nil, fmt.Errorf("expected closing code fence for %q", file)
+		// Shitty models tend to forget the last closing block fence so parsing is lenient, warn and
+		// continue if missing.
+		if i >= len(lines) || !strings.HasPrefix(strings.TrimSpace(lines[i]), "```") {
+			fmt.Printf("warning: expected closing code fence for %q\n", file)
+			for i < len(lines) && strings.TrimSpace(lines[i]) == "" { // Skip empty lines.
+				i++
+			}
+			if i < len(lines) && strings.HasPrefix(strings.TrimSpace(lines[i]), "```") {
+				i++
+			}
+			// If still not found, just continue to the next iteration.
+		} else {
+			i++
 		}
-		i++
 
 		result = append(result, Block{
 			Filepath: file,

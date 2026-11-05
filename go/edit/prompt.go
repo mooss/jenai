@@ -36,7 +36,7 @@ type Set[T comparable] map[T]struct{}
 ` + "```" + `
 
 The search content must match the file verbatim and appear exactly once.
-Include more surrounding context if needed to make it unique.
+Make the search content as short as possible while still making it unique, search content CANNOT appear twice.
 Preserve the file's indentation and style.
 The replacement content is the exact text that will replace the search content.
 Make sure to close the code block fence.`
