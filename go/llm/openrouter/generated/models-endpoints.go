@@ -286,6 +286,7 @@ type ListEndpointsResponseX200DataEndpointsItem struct {
 	//   "AionLabs",
 	//   "Alibaba",
 	//   "Ambient",
+	//   "Ant Digital",
 	//   "Baidu",
 	//   "Amazon Bedrock",
 	//   "Amazon Nova",
@@ -358,9 +359,11 @@ type ListEndpointsResponseX200DataEndpointsItem struct {
 	//   "Ollama",
 	//   "OpenAI",
 	//   "OpenInference",
+	//   "Parallel",
 	//   "Parasail",
 	//   "ParetoAlpha",
 	//   "Particle AI",
+	//   "Pearl Research",
 	//   "Poolside",
 	//   "PrimaLabs",
 	//   "PrimeIntellect",
@@ -372,6 +375,7 @@ type ListEndpointsResponseX200DataEndpointsItem struct {
 	//   "Reka",
 	//   "Relace",
 	//   "Respan",
+	//   "River",
 	//   "Sail Research",
 	//   "Sakana AI",
 	//   "SambaNova",
@@ -514,6 +518,7 @@ type ListEndpointsResponseX200DataEndpointsItemNativeToolsValue struct {
 type ListEndpointsResponseX200DataEndpointsItemPerfLast30mByWorkload struct {
 	Decisions       *ListEndpointsResponseX200DataEndpointsItemPerfLast30mByWorkloadDecisions       `json:"decisions" yaml:"decisions"`
 	Embeddings      *ListEndpointsResponseX200DataEndpointsItemPerfLast30mByWorkloadEmbeddings      `json:"embeddings" yaml:"embeddings"`
+	Extractions     *ListEndpointsResponseX200DataEndpointsItemPerfLast30mByWorkloadExtractions     `json:"extractions" yaml:"extractions"`
 	ImageGeneration *ListEndpointsResponseX200DataEndpointsItemPerfLast30mByWorkloadImageGeneration `json:"image_generation" yaml:"image_generation"`
 	Rerank          *ListEndpointsResponseX200DataEndpointsItemPerfLast30mByWorkloadRerank          `json:"rerank" yaml:"rerank"`
 	Stt             *ListEndpointsResponseX200DataEndpointsItemPerfLast30mByWorkloadStt             `json:"stt" yaml:"stt"`
@@ -603,6 +608,55 @@ type ListEndpointsResponseX200DataEndpointsItemPerfLast30mByWorkloadEmbeddingsLa
 
 // Throughput percentiles in tokens per second; pN is the speed that N% of requests reached or exceeded, so p90 is lower than p50. Only meaningful for text generation; null for workloads without token throughput.
 type ListEndpointsResponseX200DataEndpointsItemPerfLast30mByWorkloadEmbeddingsThroughput struct {
+	// Median (50th percentile)
+	// Example: 25.5
+	// format: double
+	P50 float64 `json:"p50" yaml:"p50"`
+	// 75th percentile
+	// Example: 35.2
+	// format: double
+	P75 float64 `json:"p75" yaml:"p75"`
+	// 90th percentile
+	// Example: 48.7
+	// format: double
+	P90 float64 `json:"p90" yaml:"p90"`
+	// 99th percentile
+	// Example: 85.3
+	// format: double
+	P99 float64 `json:"p99" yaml:"p99"`
+}
+
+type ListEndpointsResponseX200DataEndpointsItemPerfLast30mByWorkloadExtractions struct {
+	// Latency percentiles in milliseconds for this workload. Image and video generation report full end-to-end generation time, because their raw latency only measures request acknowledgement; every other workload reports time to first token or result.
+	Latency *ListEndpointsResponseX200DataEndpointsItemPerfLast30mByWorkloadExtractionsLatency `json:"latency" yaml:"latency"`
+	// Total requests admitted for this workload in the window.
+	RequestCount *int64 `json:"request_count" yaml:"request_count"`
+	// Throughput percentiles in tokens per second; pN is the speed that N% of requests reached or exceeded, so p90 is lower than p50. Only meaningful for text generation; null for workloads without token throughput.
+	Throughput *ListEndpointsResponseX200DataEndpointsItemPerfLast30mByWorkloadExtractionsThroughput `json:"throughput" yaml:"throughput"`
+}
+
+// Latency percentiles in milliseconds for this workload. Image and video generation report full end-to-end generation time, because their raw latency only measures request acknowledgement; every other workload reports time to first token or result.
+type ListEndpointsResponseX200DataEndpointsItemPerfLast30mByWorkloadExtractionsLatency struct {
+	// Median (50th percentile)
+	// Example: 25.5
+	// format: double
+	P50 float64 `json:"p50" yaml:"p50"`
+	// 75th percentile
+	// Example: 35.2
+	// format: double
+	P75 float64 `json:"p75" yaml:"p75"`
+	// 90th percentile
+	// Example: 48.7
+	// format: double
+	P90 float64 `json:"p90" yaml:"p90"`
+	// 99th percentile
+	// Example: 85.3
+	// format: double
+	P99 float64 `json:"p99" yaml:"p99"`
+}
+
+// Throughput percentiles in tokens per second; pN is the speed that N% of requests reached or exceeded, so p90 is lower than p50. Only meaningful for text generation; null for workloads without token throughput.
+type ListEndpointsResponseX200DataEndpointsItemPerfLast30mByWorkloadExtractionsThroughput struct {
 	// Median (50th percentile)
 	// Example: 25.5
 	// format: double

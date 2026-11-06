@@ -122,6 +122,9 @@ type GetModelResponseX200Data struct {
 	// Description of the model
 	// Example: "GPT-4 is a large multimodal model that can solve difficult problems with greater accuracy."
 	Description *string `json:"description" yaml:"description"`
+	// Request API paths that serve this model, derived from the same modality and adapter rules the routers use. A model served only through an alpha surface lists only that path.
+	// Example: ["/api/v1/chat/completions", "/api/v1/completions", "/api/v1/messages", "/api/v1/responses"]
+	Endpoints []string `json:"endpoints" yaml:"endpoints"`
 	// The date after which the model may be removed. ISO 8601 date string (YYYY-MM-DD) or null if no expiration.
 	// Example: "2025-06-01"
 	ExpirationDate *string `json:"expiration_date" yaml:"expiration_date"`
