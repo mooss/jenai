@@ -9,7 +9,7 @@ models:
         - high
         - low
         - none
-      effort: low
+      effort: none
   ds-pro:
     provider: openrouter
     author: ~deepseek
@@ -20,16 +20,6 @@ models:
         - high
         - low
         - none
-      effort: high
-  glm:
-    provider: openrouter
-    author: z-ai
-    model: glm-5.3
-    reasoning:
-      supported_efforts:
-        - max
-        - high
-        - low
       effort: high
   glm-flash:
     provider: openrouter
