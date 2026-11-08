@@ -60,18 +60,28 @@ prompts:
 # Rendered with `insert`.
 
 inserts:
+  ###############
+  # Boilerplate #
+  nobs: |-
+    Be factual and concise.
+    Use ASCII characters and wrap source identifiers in backticks.
+    Do not wrap your answer in a code block.
+    Use proper spacing in answers:
+     1. ALWAYS separate Markdown sections with an empty line.
+     2. Write one sentence per line.
+     3. Use paragraphs to make big groups of sentences more readable.
+
+  devblp: |-
+    {{insert "nobs"}}
+    When reffering to source entities (like function or variable names), quote them with `backquotes`.
+
   ############
   # Personas #
 
   jaded_dev: |-
-    Act as an experienced developer.
-    Do not waste time in excessive details.
-    Be factual and concise.
-    Do not enclose your answers in code blocks.
-  architect: |-
-    You are a senior software developer.
+    Act as a senior software developer.
 
-    You specialize in decomposing complex development tasks into manageable, sequential steps that maintain system stability throughout the implementation process. Your expertise lies in creating actionable work breakdowns and designing precise instructions for development teams.
+    {{insert "devblp"}}
 
   ################
   # Instructions #
@@ -82,32 +92,30 @@ inserts:
 
     ## Format
 
+    Format your message like this:
     ```
     Short summary of what changed and why it changed
 
     (optional) Longer description of the changes, not everything should be
     explained, especially not the obvious things.
-    When starting a new sentence, always go to the next line.
     ```
-
-    When reffering to source entities (like function or variable names), quote them with `backquotes`.
 
     ## Guidelines
 
     For the short summary:
-    - Use the imperative, present tense: "change", not "changed" nor "changes".
-    - Capitalize the first letter.
-    - No dot (.) at the end.
-    - Keep it short (ideally 50 characters or less, definitely under 72).
-    - Focus on *what* was changed and *why*.
+     - Use the imperative, present tense: "change", not "changed" nor "changes".
+     - Capitalize the first letter.
+     - No period (.) at the end.
+     - Keep it short (ideally 50 characters or less, definitely under 72).
+     - Focus on *what* was changed and *why*.
 
     For the optional long description:
-    - Use the imperative, present tense.
-    - Wrap lines at 72 characters.
-    - Explain the *what* and *why* of the change, *not the how*. The code itself explains the *how*.
-    - Include motivation for the change and how it addresses the issue.
-    - Can be ignored if the change is very simple or already well-explained in the short summary.
-    - New sentences go to the next line.
+     - Use the imperative, present tense.
+     - Wrap lines at 72 characters.
+     - Explain the *what* and *why* of the change, *not the how*. The code itself explains the *how*.
+     - Include motivation for the change and how it addresses the issue.
+     - Can be ignored if the change is very simple or already well-explained in the short summary.
+     - New sentences go to the next line.
 
   idea_graph: |-
     I will present an idea.
@@ -125,31 +133,38 @@ inserts:
 
   review_code: |-
     Review the provided code and focus ONLY on:
-    - Critical bugs or logic errors
-    - Security vulnerabilities
-    - Performance issues
-    - Maintainability problems
-    - Violations of important architectural patterns
-    - Missing error handling where essential
-    - Incorrect documentation.
+     - Critical bugs or logic errors.
+     - Security vulnerabilities.
+     - Performance issues.
+     - Maintainability problems.
+     - Violations of important architectural patterns.
+     - Missing error handling where essential.
+     - Incorrect documentation.
 
-    EXCLUDE:
-    - Style preferences (indentation, spacing, naming conventions unless unclear)
-    - Obvious optimizations with negligible impact
-    - Personal opinions about approaches
-    - Generic comments like "consider adding comments"
-    - Speculation about impact out-of-context like "renaming this method breaks source compatibility for users of the package"
+    Exclude:
+     - Style preferences (indentation, spacing, naming conventions unless unclear).
+     - Obvious optimizations with negligible impact.
+     - Personal opinions about approaches.
+     - Generic comments like "consider adding comments".
+     - The mere fact that functionality, files, or behavior was changed or removed.
+     - Speculation that consumers may rely on previous behavior.
+
+    Do not:
+     - Speculate about impact out-of-context like "renaming this method breaks source compatibility for users of the package".
+     - Report a change or removal as an issue solely because it differs from the previous behavior.
+       Mention it only when the provided code demonstrates a concrete bug, security vulnerability, performance issue, maintainability problem, architectural violation, essential missing error handling, or documentation error.
+     - Comment on what is not provided.
 
     Format your review as:
     ```
     ## Critical Issues
-    [None if none found]
+    [...]
 
     ## Important Suggestions
-    [None if none found]
+    [...]
 
     ## Minor Improvements
-    [None if none found]
+    [...]
     ```
 
     For each point, provide:
@@ -159,7 +174,13 @@ inserts:
     2. Brief description of the issue
     3. Specific fix recommendation
 
-    Be direct and technical. Assume the reader is an experienced developer. If the code is solid with no meaningful issues, state so clearly.
+    Each point is SINGLE a list item.
+    Each point must be independent from the others.
+
+    Be direct and technical.
+    Assume the reader is an experienced developer.
+    Each section is optional, do not write the header if there is no content.
+    If no issue is found simply state "No issue found.".
 
   review_diff: |-
     {{ insert "review_code" }}
